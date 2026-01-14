@@ -1,0 +1,57 @@
+# Add DrugTracker Models and Database Context
+
+I will add the Entity Framework Core models and DbContext based on the provided SQL schema.
+
+## User Review Required
+None.
+
+## Proposed Changes
+
+### Dependencies
+- Add `Microsoft.EntityFrameworkCore.SqlServer`
+- Add `Microsoft.EntityFrameworkCore.Tools`
+
+### Models
+I will create the following classes in `DrugTracker/Models` with Data Annotations and Validations:
+
+#### [NEW] [Organization.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Models/Organization.cs)
+- `OrgType`: `[AllowedValues("MANUFACTURER", "DISTRIBUTOR", "PHARMACY", "REGULATOR")]`
+
+#### [NEW] [User.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Models/User.cs)
+- `Role`: `[AllowedValues("ADMIN", "MANUFACTURER", "DISTRIBUTOR", "PHARMACY")]`
+- `UserName`: `[Required]`, `[StringLength(150)]`
+
+#### [NEW] [Drug.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Models/Drug.cs)
+- `DrugCode`, `DrugName`: `[Required]`, `[StringLength]`
+
+#### [NEW] [DrugBatch.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Models/DrugBatch.cs)
+- `QuantityProduced`: `[Range(1, int.MaxValue)]`
+- Implement `IValidatableObject` to ensure `ExpiryDate > ManufactureDate`.
+
+#### [NEW] [BatchOwnershipHistory.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Models/BatchOwnershipHistory.cs)
+- `ActionType`: `[AllowedValues("CREATED", "TRANSFERRED", "RECEIVED")]`
+
+#### [NEW] [Inventory.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Models/Inventory.cs)
+- `AvailableQty`: `[Range(0, int.MaxValue)]`
+
+#### [NEW] [BlockchainLedger.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Models/BlockchainLedger.cs)
+#### [NEW] [ActivityLog.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Models/ActivityLog.cs)
+
+### Data Access
+I will create a `Data` folder and the DbContext.
+#### [NEW] [DrugTrackerDbContext.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Data/DrugTrackerDbContext.cs)
+- Implement `OnModelCreating` to map tables to `Healthcare` schema.
+- Configure Primary Keys, Foreign Keys, Default Values, and Checks (as Fluent API where possible, or Data Annotations).
+- Note: `LEDGER = ON` for `BlockchainLedger` might need raw SQL or migration script adjustments, but purely for the model, standard mapping is sufficient.
+
+### Configuration
+#### [MODIFY] [appsettings.json](file:///c:/Major_Project_1/DrugTracker/DrugTracker/appsettings.json)
+- Add connection string.
+
+#### [MODIFY] [Program.cs](file:///c:/Major_Project_1/DrugTracker/DrugTracker/Program.cs)
+- Register `DrugTrackerDbContext`.
+
+## Verification Plan
+
+### Automated Tests
+- Run `dotnet build` to verify the project compiles.

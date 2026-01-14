@@ -1,0 +1,98 @@
+@model DrugTracker.Models.DrugBatch
+@using DrugTracker.Models
+
+@{
+    ViewData["Title"] = "Batch Details";
+    var history = ViewBag.History as IEnumerable<BatchOwnershipHistory>;
+    var ledger = ViewBag.Ledger as IEnumerable<BlockchainLedger>;
+    bool isTampered = false; // Add logic if ledger checks fail
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-shield-check text-success"></i> Batch Verification: @Model.DrugBatchId</h2>
+        <span class="badge bg-success fs-5">Blockchain Verified</span>
+    </div>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3"><strong>Drug Name:</strong> <br/> @Model.Drug?.DrugName</div>
+                <div class="col-md-3"><strong>Manufactured By:</strong> <br/> @Model.CreatedByOrg?.OrgName</div>
+                <div class="col-md-3"><strong>Mfg Date:</strong> <br/> @Model.ManufactureDate.ToShortDateString()</div>
+                <div class="col-md-3"><strong>Expiry Date:</strong> <br/> @Model.ExpiryDate.ToShortDateString()</div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3">Journey Timeline</h4>
+    <div class="timeline">
+        @if(history != null) {
+            foreach(var item in history) {
+                <div class="card mb-3 border-left-primary shadow-sm">
+                    <div class="card-body">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1 text-primary">@item.ActionType</h5>
+                            <small>@item.ActionTime.ToString("g")</small>
+                        </div>
+                        <p class="mb-1">
+                            @if(item.ActionType == "CREATED" || item.ActionType == "BATCH_CREATED") {
+                                <span>Created by <strong>@Model.CreatedByOrg?.OrgName</strong></span>
+                            } else if (item.ToOrg != null) {
+                                <span>Transferred to <strong>@item.ToOrg.OrgName</strong> (@item.ToOrg.OrgType)</span>
+                            } else {
+                                <span>@item.ActionType</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <h4 class="mb-3 mt-5">Blockchain Ledger Records (Immutable)</h4>
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Hash (Simulated)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if(ledger != null)
+                {
+                    foreach(var l in ledger)
+                    {
+                        <tr>
+                            <td>@l.ActionTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@l.Action</td>
+                            <td>@l.FromOrgId</td>
+                            <td>@l.ToOrgId</td>
+                            <td><code class="text-muted">@GetHashCode(l)</code></td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="mt-4 text-center">
+        <a asp-action="Index" class="btn btn-outline-primary">Verify Another Batch</a>
+    </div>
+</div>
+
+@functions {
+    string GetHashCode(BlockchainLedger l) {
+        // Simple hash simulation for display
+        var input = $"{l.DrugBatchId}{l.Action}{l.ActionTime.Ticks}";
+        using (var sha = System.Security.Cryptography.SHA256.Create()) {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(input);
+            var hash = sha.ComputeHash(bytes);
+            return Convert.ToBase64String(hash).Substring(0, 15) + "...";
+        }
+    }
+}
