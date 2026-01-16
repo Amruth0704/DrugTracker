@@ -16,7 +16,7 @@ namespace DrugTracker.Models
         public Drug? Drug { get; set; }
 
         [Required]
-        [Range(1, int.MaxValue)]
+        [Range(101, int.MaxValue)]
         public int QuantityProduced { get; set; }
 
         [Required]
@@ -37,6 +37,10 @@ namespace DrugTracker.Models
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
+            if (ManufactureDate > DateTime.Now)
+            {
+                yield return new ValidationResult("Manufacture Date cannot be in the future.", new[] { nameof(ManufactureDate) });
+            }
             if (ExpiryDate <= ManufactureDate)
             {
                 yield return new ValidationResult("ExpiryDate must be greater than ManufactureDate.", new[] { nameof(ExpiryDate), nameof(ManufactureDate) });

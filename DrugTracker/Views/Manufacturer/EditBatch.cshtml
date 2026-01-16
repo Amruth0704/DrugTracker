@@ -1,0 +1,58 @@
+@model DrugTracker.Models.ViewModels.CreateBatchViewModel
+
+@{
+    ViewData["Title"] = "Edit Batch";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3>Edit Batch: @ViewBag.BatchId</h3>
+        </div>
+        <div class="card-body">
+            <form asp-action="EditBatch" asp-route-id="@ViewBag.BatchId">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                
+                <!-- Drug (Editable) -->
+                <div class="mb-3">
+                    <label asp-for="DrugId" class="form-label">Drug</label>
+                    <select asp-for="DrugId" class="form-select" asp-items="ViewBag.DrugList"></select>
+                    <span asp-validation-for="DrugId" class="text-danger"></span>
+                    <small class="text-muted d-block mt-1"><i class="bi bi-info-circle"></i> Changing the Drug will regenerate the Batch ID.</small>
+                </div>
+
+                <!-- Quantity (Editable) -->
+                <div class="mb-3">
+                    <label asp-for="Quantity" class="form-label"></label>
+                    <input asp-for="Quantity" class="form-control" />
+                    <span asp-validation-for="Quantity" class="text-danger"></span>
+                    <small class="text-muted">You can modify the quantity before dispatch.</small>
+                </div>
+
+                <!-- Dates (Manufacture Editable, Expiry Read-only) -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="ManufactureDate" class="form-label"></label>
+                        <input asp-for="ManufactureDate" type="date" class="form-control" />
+                        <span asp-validation-for="ManufactureDate" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="ExpiryDate" class="form-label"></label>
+                        <input value="@Model.ExpiryDate.ToString("yyyy-MM-dd")" class="form-control" disabled readonly />
+                        <input type="hidden" name="ExpiryDate" value="@Model.ExpiryDate.ToString("yyyy-MM-dd")" />
+                        <small class="text-muted d-block mt-1">Expiry is auto-calculated (Mfg + 3 Years)</small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a asp-action="Dashboard" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

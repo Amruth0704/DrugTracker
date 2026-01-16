@@ -1,0 +1,54 @@
+@model IEnumerable<DrugTracker.Models.ViewModels.InventoryViewModel>
+
+@{
+    ViewData["Title"] = "Pharmacy Inventory";
+}
+
+<div class="container mt-4">
+    <h2><i class="bi bi-box-seam text-primary"></i> Pharmacy Inventory</h2>
+    <hr />
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Batch ID</th>
+                            <th>Drug Name</th>
+                            <th>Total Received</th>
+                            <th>Sold</th>
+                            <th>Available</th>
+                            <th>Expiry Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold">@item.DrugBatchId</td>
+                                <td>@item.DrugName</td>
+                                <td>@item.TotalQuantityReceived</td>
+                                <td>@item.QuantitySold</td>
+                                <td>
+                                    <span class="badge @(item.AvailableQty > 0 ? "bg-success" : "bg-danger")">
+                                        @item.AvailableQty
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="@(item.ExpiryDate < DateTime.Now ? "text-danger fw-bold" : "")">
+                                        @item.ExpiryDate.ToShortDateString()
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a asp-action="Dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>

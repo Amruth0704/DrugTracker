@@ -55,6 +55,7 @@
                             <th>Mfg Date</th>
                             <th>Exp Date</th>
                             <th>Status</th>
+                            <th>Transferred To</th>
                             <th class="text-end px-3">Actions</th>
                         </tr>
                     </thead>
@@ -77,6 +78,7 @@
                                          <span class="badge rounded-pill bg-secondary">Dispatched</span>
                                     }
                                 </td>
+                                <td>@item.TransferredToOrgName</td>
                                 <td class="text-end px-3">
                                     @if (item.IsActionEnabled)
                                     {

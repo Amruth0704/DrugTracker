@@ -7,5 +7,6 @@ namespace DrugTracker.Models.ViewModels
         public DrugBatch Batch { get; set; }
         public string LatestAction { get; set; } = string.Empty;
         public bool IsActionEnabled { get; set; } = true;
+        public string TransferredToOrgName { get; set; } = "N/A";
     }
 }

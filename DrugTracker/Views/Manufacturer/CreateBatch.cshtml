@@ -36,12 +36,13 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label asp-for="ManufactureDate" class="form-label"></label>
-                        <input asp-for="ManufactureDate" class="form-control" />
+                        <input asp-for="ManufactureDate" class="form-control" max="@DateTime.Now.ToString("yyyy-MM-dd")" />
                         <span asp-validation-for="ManufactureDate" class="text-danger"></span>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label asp-for="ExpiryDate" class="form-label"></label>
-                        <input asp-for="ExpiryDate" class="form-control" />
+                        <input asp-for="ExpiryDate" class="form-control" readonly style="background-color: #e9ecef;" />
+                        <small class="text-muted">Auto-calculated (Manufacture Date + 3 Years)</small>
                         <span asp-validation-for="ExpiryDate" class="text-danger"></span>
                     </div>
                 </div>
@@ -55,4 +56,28 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const mfgDateInput = document.querySelector('input[name="ManufactureDate"]');
+            const expDateInput = document.querySelector('input[name="ExpiryDate"]');
+
+            if (mfgDateInput && expDateInput) {
+                mfgDateInput.addEventListener('change', function() {
+                    const mfgDateValue = this.value;
+                    if (mfgDateValue) {
+                        const mfgDate = new Date(mfgDateValue);
+                        // Add 3 years
+                        mfgDate.setFullYear(mfgDate.getFullYear() + 3);
+                        
+                        // Format to YYYY-MM-DD for input type="date"
+                        const year = mfgDate.getFullYear();
+                        const month = String(mfgDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(mfgDate.getDate()).padStart(2, '0');
+                        
+                        expDateInput.value = `${year}-${month}-${day}`;
+                    }
+                });
+            }
+        });
+    </script>
 }

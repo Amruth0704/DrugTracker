@@ -25,7 +25,14 @@ namespace DrugTracker.Repositories.Implementations
             
             if (existing != null)
             {
-                existing.AvailableQty += inventory.AvailableQty; // Add to existing
+                // We are updating the state, so we overwrite the value.
+                // The caller (Service) is responsible for calculation (e.g. subtracting sold qty or setting initial qty).
+                
+                // Special check: If we are calling this with a *different* instance but same ID, we update.
+                // If it's the *same* tracked instance (from EF), this assignment might be redundant but safe.
+                // However, the bug was using += which was definitely wrong for "Update State".
+                
+                existing.AvailableQty = inventory.AvailableQty; 
                 existing.LastUpdated = System.DateTime.Now;
                 _context.Inventories.Update(existing);
             }

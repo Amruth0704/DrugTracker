@@ -1,0 +1,114 @@
+@model IEnumerable<DrugTracker.Models.ViewModels.InventoryViewModel>
+
+@{
+    ViewData["Title"] = "Record Sales";
+}
+
+<div class="container mt-4">
+    <h2><i class="bi bi-cart-check text-success"></i> Record Sales</h2>
+    
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success">@TempData["Message"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <hr />
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Batch ID</th>
+                            <th>Drug Name</th>
+                            <th>Available Qty</th>
+                            <th>Expiry Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold">@item.DrugBatchId</td>
+                                <td>@item.DrugName</td>
+                                <td>
+                                    <span class="badge bg-success">@item.AvailableQty</span>
+                                </td>
+                                <td>@item.ExpiryDate.ToShortDateString()</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-success" 
+                                            onclick="openSaleModal('@item.DrugBatchId', '@item.DrugName', @item.AvailableQty)">
+                                        <i class="bi bi-currency-dollar"></i> Sell
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-3">
+        <a asp-action="Dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Sale Modal -->
+<div class="modal fade" id="saleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="RecordSale" method="post">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Record Sale</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="saleBatchId" name="DrugBatchId" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Drug</label>
+                        <p id="saleDrugName" class="form-control-plaintext">Loading...</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Available Stock</label>
+                        <p id="saleAvailable" class="form-control-plaintext">0</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="QuantityToSell" class="form-label fw-bold">Quantity to Sell</label>
+                        <input type="number" id="saleQuantity" name="QuantityToSell" class="form-control" min="1" required />
+                        <small class="text-muted">Enter quantity to sell.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Confirm Sale</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openSaleModal(batchId, drugName, available) {
+            document.getElementById('saleBatchId').value = batchId;
+            document.getElementById('saleDrugName').textContent = drugName;
+            document.getElementById('saleAvailable').textContent = available;
+            document.getElementById('saleQuantity').max = available; // Set max attribute
+            document.getElementById('saleQuantity').value = ""; // Reset value
+            
+            var myModal = new bootstrap.Modal(document.getElementById('saleModal'));
+            myModal.show();
+        }
+    </script>
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
