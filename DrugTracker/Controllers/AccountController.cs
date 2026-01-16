@@ -18,9 +18,9 @@ namespace DrugTracker.Controllers
         }
 
         [HttpGet]
-        public IActionResult Login()
+        public IActionResult Login(string? expectedRole)
         {
-            return View();
+            return View(new LoginViewModel { ExpectedRole = expectedRole });
         }
 
         [HttpPost]
@@ -31,6 +31,14 @@ namespace DrugTracker.Controllers
                 var user = await _userRepository.ValidateUserAsync(model.Username, model.Password);
                 if (user != null)
                 {
+                    // Enforce Role Check if ExpectedRole is set
+                    if (!string.IsNullOrEmpty(model.ExpectedRole) && 
+                        !string.Equals(user.Role, model.ExpectedRole, StringComparison.OrdinalIgnoreCase))
+                    {
+                        ModelState.AddModelError("", $"Invalid credentials for {model.ExpectedRole}. You are a {user.Role}.");
+                        return View(model);
+                    }
+
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.Name, user.UserName),

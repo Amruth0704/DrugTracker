@@ -11,10 +11,24 @@ namespace DrugTracker.Data
         {
             context.Database.EnsureCreated();
 
+            // Clear existing data (Order matters due to FKs)
+            // 1. Child tables first
+            context.BlockchainLedgers.RemoveRange(context.BlockchainLedgers);
+            context.BatchOwnershipHistories.RemoveRange(context.BatchOwnershipHistories);
+            context.Inventories.RemoveRange(context.Inventories);
+            context.DrugBatches.RemoveRange(context.DrugBatches);
+            
+            // 2. Parent tables (except Org type lookups if any, but here Users depend on Orgs)
+            context.Users.RemoveRange(context.Users);
+            context.Drugs.RemoveRange(context.Drugs);
+            context.Organizations.RemoveRange(context.Organizations);
+            
+            context.SaveChanges();
+
             // Look for any users.
             if (context.Users.Any())
             {
-                return;   // DB has been seeded
+                return;   // Should be empty now
             }
 
             // --- Organizations ---
@@ -43,9 +57,9 @@ namespace DrugTracker.Data
             // --- Drugs ---
             var drugs = new Drug[]
             {
-                new Drug { DrugName = "Paracetamol", DrugCode = "PAR", Description = "Pain reliever", IsActive = true },
-                new Drug { DrugName = "Amoxicillin", DrugCode = "AMX", Description = "Antibiotic", IsActive = true },
-                new Drug { DrugName = "Ibuprofen", DrugCode = "IBU", Description = "Anti-inflammatory", IsActive = true }
+                new Drug { DrugName = "Paracetamol", DrugCode = "PAR" },
+                new Drug { DrugName = "Amoxicillin", DrugCode = "AMX" },
+                new Drug { DrugName = "Ibuprofen", DrugCode = "IBU" }
             };
             context.Drugs.AddRange(drugs);
             context.SaveChanges();

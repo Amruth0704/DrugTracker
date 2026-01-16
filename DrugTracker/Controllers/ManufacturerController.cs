@@ -27,7 +27,23 @@ namespace DrugTracker.Controllers
         {
             int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
             var batches = await _batchRepository.GetBatchesByManufacturerAsync(orgId);
-            return View(batches);
+            
+            var viewModels = new List<BatchViewModel>();
+            foreach (var b in batches)
+            {
+                var history = await _batchRepository.GetOwnershipHistoryAsync(b.DrugBatchId);
+                var last = history.LastOrDefault();
+                var vm = new BatchViewModel
+                {
+                    Batch = b,
+                    LatestAction = last?.ActionType ?? "N/A",
+                    IsActionEnabled = (last?.ActionType == "CREATED" || last?.ActionType == "BATCH_CREATED") 
+                    // Can dispatch only if currently holding it (CREATED means Manuf holds it)
+                };
+                viewModels.Add(vm);
+            }
+
+            return View(viewModels);
         }
 
         [HttpGet]

@@ -2,7 +2,76 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="hero-section text-center">
+    <div class="container fade-in-up">
+        <h1 class="display-3 fw-bold mb-3">Welcome to <span class="text-gradient">TrueTrace</span></h1>
+        <p class="lead text-muted mb-4">Secure, Immutable Blockchain-Based Drug Tracking System</p>
+        <p class="mb-5">Ensuring pharmaceutical integrity from manufacturer to consumer.</p>
+    </div>
 </div>
+
+<div class="container">
+    <div class="row g-4 justify-content-center">
+        <!-- Manufacturer -->
+        <div class="col-md-3 fade-in-up delay-100">
+            <div class="card h-100 hover-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-building fs-1 text-primary"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">Manufacturer</h5>
+                    <p class="card-text text-muted small">Create batches and initiate the supply chain.</p>
+                    <a asp-controller="Account" asp-action="Login" asp-route-expectedRole="Manufacturer" class="btn btn-primary w-100 stretched-link">Login</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distributor -->
+        <div class="col-md-3 fade-in-up delay-200">
+            <div class="card h-100 hover-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-truck fs-1 text-warning"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">Distributor</h5>
+                    <p class="card-text text-muted small">Manage logistics and transfer to pharmacies.</p>
+                    <a asp-controller="Account" asp-action="Login" asp-route-expectedRole="Distributor" class="btn btn-warning text-white w-100 stretched-link">Login</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pharmacy -->
+        <div class="col-md-3 fade-in-up delay-300">
+            <div class="card h-100 hover-card shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-hospital fs-1 text-success"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">Pharmacy</h5>
+                    <p class="card-text text-muted small">Receive stock and sell to verified patients.</p>
+                    <a asp-controller="Account" asp-action="Login" asp-route-expectedRole="Pharmacy" class="btn btn-success w-100 stretched-link">Login</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Public Verification -->
+         <div class="col-md-3 fade-in-up delay-300">
+            <div class="card h-100 hover-card shadow-sm border-info">
+                <div class="card-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-shield-check fs-1 text-info"></i>
+                    </div>
+                    <h5 class="card-title fw-bold">Verify Medicine</h5>
+                    <p class="card-text text-muted small">Public trust layer. Check any batch journey.</p>
+                    <a asp-controller="Verification" asp-action="Index" class="btn btn-outline-info w-100 stretched-link">Track Now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Optional: Add more JS animations here if needed, but CSS is handling the load animations.
+    </script>
+}

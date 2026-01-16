@@ -10,5 +10,7 @@ namespace DrugTracker.Models.ViewModels
         [Required]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
+
+        public string? ExpectedRole { get; set; }
     }
 }

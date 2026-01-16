@@ -110,6 +110,19 @@ namespace DrugTracker.Services
              await _unitOfWork.BeginTransactionAsync();
              try
              {
+                 // Check if already dispatched
+                 // Ideally we check the latest history or status
+                 // For now, let's look at the latest ownership record
+                 var historyList = await _unitOfWork.DrugBatches.GetOwnershipHistoryAsync(batchId);
+                 var latest = historyList.LastOrDefault();
+                 
+                 if (latest != null && latest.ActionType == "TRANSFERRED")
+                 {
+                     // Could be transferred to Distributor or Pharmacy. 
+                     // If currently held by Manufacturer, it should not be 'TRANSFERRED' yet unless to Dist.
+                     throw new Exception("Batch already dispatched.");
+                 }
+
                  await _blockchainService.RecordActionAsync(batchId, "TRANSFER_TO_DISTRIBUTOR", fromOrgId, toOrgId, null);
                  
                  var history = new BatchOwnershipHistory
@@ -133,6 +146,15 @@ namespace DrugTracker.Services
              await _unitOfWork.BeginTransactionAsync();
              try
              {
+                 var historyList = await _unitOfWork.DrugBatches.GetOwnershipHistoryAsync(batchId);
+                 var latest = historyList.LastOrDefault();
+                 
+                 // If already transferred from Distributor to Pharmacy
+                 if (latest != null && latest.ActionType == "TRANSFERRED" && latest.FromOrgId == fromOrgId)
+                 {
+                      throw new Exception("Batch already dispatched to Pharmacy.");
+                 }
+
                  await _blockchainService.RecordActionAsync(batchId, "TRANSFER_TO_PHARMACY", fromOrgId, toOrgId, null);
                  
                  var history = new BatchOwnershipHistory
@@ -156,6 +178,14 @@ namespace DrugTracker.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                // Check if already accepted
+                var historyList = await _unitOfWork.DrugBatches.GetOwnershipHistoryAsync(batchId);
+                var latest = historyList.LastOrDefault();
+                if (latest != null && (latest.ActionType == "RECEIVED" || latest.ActionType == "ACCEPTED"))
+                {
+                    throw new Exception("Batch already accepted.");
+                }
+
                 // Add to Inventory
                 var batch = await _unitOfWork.DrugBatches.GetByBatchIdAsync(batchId);
                 if (batch == null) throw new Exception("Batch not found");

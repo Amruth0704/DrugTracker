@@ -1,3 +1,4 @@
+using DrugTracker.Models.ViewModels;
 using DrugTracker.Repositories.Interfaces;
 using DrugTracker.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -23,15 +24,34 @@ namespace DrugTracker.Controllers
         public async Task<IActionResult> Dashboard()
         {
             int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
+            var batches = await _batchRepository.GetIncomingDispatchesAsync(orgId);
             
-            // Section 1: Incoming batches (Dispatched to here)
-            var incoming = await _batchRepository.GetIncomingDispatchesAsync(orgId);
-            ViewBag.Incoming = incoming;
+            var viewModels = new List<BatchViewModel>();
+            foreach (var b in batches)
+            {
+                var history = await _batchRepository.GetOwnershipHistoryAsync(b.DrugBatchId);
+                var last = history.LastOrDefault();
+                
+                // Enabled if we haven't accepted it yet.
+                // If we accepted it, last action is RECEIVED.
+                bool alreadyAccepted = last != null && (last.ActionType == "RECEIVED" || last.ActionType == "ACCEPTED");
+                
+                var vm = new BatchViewModel
+                {
+                    Batch = b,
+                    LatestAction = last?.ActionType ?? "N/A",
+                    IsActionEnabled = !alreadyAccepted
+                };
+                viewModels.Add(vm);
+            }
+
+            // Note: The View expects BatchViewModel list for the top table. 
+            // The Inventory list is separate. 
+            // We might need a Composite ViewModel if we want both, 
+            // but the corrected View logic (Step 340) only iterates Model for Incoming.
+            // It has a link "View Full Inventory" instead of a table.
             
-            // Section 2: Current Inventory
-            var inventory = await _inventoryRepository.GetPharmacyInventoryAsync(orgId);
-            
-            return View(inventory);
+            return View(viewModels);
         }
 
         [HttpPost]
