@@ -54,6 +54,12 @@ namespace DrugTracker.Controllers
                 viewModels.Add(vm);
             }
 
+            // Sort: Actionable items first, then by Creation Date
+            viewModels = viewModels
+                .OrderByDescending(vm => vm.IsActionEnabled)
+                .ThenByDescending(vm => vm.Batch.CreatedAt)
+                .ToList();
+
             return View(viewModels);
         }
 
