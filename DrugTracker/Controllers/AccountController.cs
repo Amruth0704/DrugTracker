@@ -91,6 +91,29 @@ namespace DrugTracker.Controllers
             return RedirectToAction("Index", "Home");
         }
 
+        public IActionResult RedirectToDashboard()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var role = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (!string.IsNullOrEmpty(role))
+                {
+                    switch (role.ToUpper())
+                    {
+                        case "MANUFACTURER":
+                            return RedirectToAction("Dashboard", "Manufacturer");
+                        case "DISTRIBUTOR":
+                            return RedirectToAction("Dashboard", "Distributor");
+                        case "PHARMACY":
+                            return RedirectToAction("Dashboard", "Pharmacy");
+                        default:
+                            return RedirectToAction("Index", "Home");
+                    }
+                }
+            }
+            return RedirectToAction("Index", "Home");
+        }
+
         public IActionResult AccessDenied()
         {
             return View();

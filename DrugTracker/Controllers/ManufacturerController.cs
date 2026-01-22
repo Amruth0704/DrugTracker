@@ -54,14 +54,11 @@ namespace DrugTracker.Controllers
                 viewModels.Add(vm);
             }
 
-
-            // Sorting Logic: CREATED first, then TRANSFERRED
-            viewModels = viewModels.OrderBy(v => 
-            {
-                if (v.LatestAction == "CREATED" || v.LatestAction == "BATCH_CREATED") return 1;
-                if (v.LatestAction == "TRANSFERRED") return 2;
-                return 3;
-            }).ThenByDescending(v => v.Batch.ManufactureDate).ToList();
+            // Sort: Actionable items first, then by Creation Date
+            viewModels = viewModels
+                .OrderByDescending(vm => vm.IsActionEnabled)
+                .ThenByDescending(vm => vm.Batch.CreatedAt)
+                .ToList();
 
             return View(viewModels);
         }

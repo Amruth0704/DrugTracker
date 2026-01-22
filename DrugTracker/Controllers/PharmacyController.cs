@@ -58,6 +58,12 @@ namespace DrugTracker.Controllers
             // but the corrected View logic (Step 340) only iterates Model for Incoming.
             // It has a link "View Full Inventory" instead of a table.
             
+            // Sort: Actionable items first, then by Creation Date
+            viewModels = viewModels
+                .OrderByDescending(vm => vm.IsActionEnabled)
+                .ThenByDescending(vm => vm.Batch.CreatedAt)
+                .ToList();
+
             return View(viewModels);
         }
 

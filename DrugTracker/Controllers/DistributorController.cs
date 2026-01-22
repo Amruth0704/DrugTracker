@@ -66,10 +66,11 @@ namespace DrugTracker.Controllers
                 viewModels.Add(vm);
             }
 
-            // Sorting Logic: Received (ActionEnabled = true) first, then Dispatched (ActionEnabled = false)
-            viewModels = viewModels.OrderByDescending(v => v.IsActionEnabled)
-                                   .ThenByDescending(v => v.Batch.ManufactureDate)
-                                   .ToList();
+            // Sort: Actionable items first, then by Creation Date
+            viewModels = viewModels
+                .OrderByDescending(vm => vm.IsActionEnabled)
+                .ThenByDescending(vm => vm.Batch.CreatedAt)
+                .ToList();
 
             return View(viewModels);
         }
