@@ -207,6 +207,10 @@ namespace DrugTracker.Services
                      DrugBatchId = batchId,
                      ActionType = "RECEIVED",
                      ToOrgId = pharmacyOrgId,
+                     
+                     // Set FromOrgId to the Distributor's ID (which was the FromOrgId in the latest TRANSFERRED record)
+                     FromOrgId = latest?.FromOrgId, 
+                     
                      PerformedBy = userId,
                      ActionTime = DateTime.Now
                  };
