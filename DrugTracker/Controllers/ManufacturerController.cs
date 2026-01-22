@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace DrugTracker.Controllers
 {
-    [Authorize(Roles = "Manufacturer")]
+    [Authorize(Roles = "Manufacturer", AuthenticationSchemes = "ManufacturerScheme")]
     public class ManufacturerController : Controller
     {
         private readonly IBatchService _batchService;
@@ -53,6 +53,15 @@ namespace DrugTracker.Controllers
                 };
                 viewModels.Add(vm);
             }
+
+
+            // Sorting Logic: CREATED first, then TRANSFERRED
+            viewModels = viewModels.OrderBy(v => 
+            {
+                if (v.LatestAction == "CREATED" || v.LatestAction == "BATCH_CREATED") return 1;
+                if (v.LatestAction == "TRANSFERRED") return 2;
+                return 3;
+            }).ThenByDescending(v => v.Batch.ManufactureDate).ToList();
 
             return View(viewModels);
         }

@@ -26,10 +26,38 @@ builder.Services.AddScoped<DrugTracker.Services.IBatchService, DrugTracker.Servi
 
 // Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+    // .AddCookie(options =>
+    // {
+    //     options.LoginPath = "/Account/Login";
+    //     options.AccessDeniedPath = "/Account/AccessDenied";
+    //     options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    // });
+    .AddCookie("ManufacturerScheme", options =>
     {
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
+        options.Cookie.Name = "DrugTracker.Manufacturer";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    })
+    .AddCookie("DistributorScheme", options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.Cookie.Name = "DrugTracker.Distributor";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    })
+    .AddCookie("PharmacyScheme", options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.Cookie.Name = "DrugTracker.Pharmacy";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    })
+    .AddCookie("AdminScheme", options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.Cookie.Name = "DrugTracker.Admin";
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
     });
 

@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace DrugTracker.Controllers
 {
-    [Authorize(Roles = "Distributor")]
+    [Authorize(Roles = "Distributor", AuthenticationSchemes = "DistributorScheme")]
     public class DistributorController : Controller
     {
         private readonly IBatchService _batchService;
@@ -65,6 +65,11 @@ namespace DrugTracker.Controllers
                 };
                 viewModels.Add(vm);
             }
+
+            // Sorting Logic: Received (ActionEnabled = true) first, then Dispatched (ActionEnabled = false)
+            viewModels = viewModels.OrderByDescending(v => v.IsActionEnabled)
+                                   .ThenByDescending(v => v.Batch.ManufactureDate)
+                                   .ToList();
 
             return View(viewModels);
         }
