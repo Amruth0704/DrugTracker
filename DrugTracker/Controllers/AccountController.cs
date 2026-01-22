@@ -86,7 +86,7 @@ namespace DrugTracker.Controllers
             await HttpContext.SignOutAsync("DistributorScheme");
             await HttpContext.SignOutAsync("PharmacyScheme");
             await HttpContext.SignOutAsync("AdminScheme");
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme); // Just in case
+            // await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme); // Removed as it is not registered
             
             return RedirectToAction("Index", "Home");
         }

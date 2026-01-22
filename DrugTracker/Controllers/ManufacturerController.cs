@@ -38,9 +38,12 @@ namespace DrugTracker.Controllers
                 var last = history.LastOrDefault();
                 string transferredTo = "N/A";
 
-                if (last != null && last.ActionType == "TRANSFERRED")
+                // Find the transfer action initiated by THIS manufacturer
+                var transferRecord = history.FirstOrDefault(h => h.ActionType == "TRANSFERRED" && h.FromOrgId == orgId);
+                
+                if (transferRecord != null)
                 {
-                   var toOrg = await _context.Organizations.FindAsync(last.ToOrgId);
+                   var toOrg = await _context.Organizations.FindAsync(transferRecord.ToOrgId);
                    transferredTo = toOrg?.OrgName ?? "Unknown";
                 }
 
