@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace DrugTracker.Controllers
 {
-    [Authorize(Roles = "Distributor")]
+    [Authorize(Roles = "Distributor", AuthenticationSchemes = "DistributorScheme")]
     public class DistributorController : Controller
     {
         private readonly IBatchService _batchService;

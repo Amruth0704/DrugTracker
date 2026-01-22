@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace DrugTracker.Controllers
 {
-    [Authorize(Roles = "Manufacturer")]
+    [Authorize(Roles = "Manufacturer", AuthenticationSchemes = "ManufacturerScheme")]
     public class ManufacturerController : Controller
     {
         private readonly IBatchService _batchService;

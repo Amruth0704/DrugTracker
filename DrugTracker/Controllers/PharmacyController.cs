@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace DrugTracker.Controllers
 {
-    [Authorize(Roles = "Pharmacy")]
+    [Authorize(Roles = "Pharmacy", AuthenticationSchemes = "PharmacyScheme")]
     public class PharmacyController : Controller
     {
         private readonly IBatchService _batchService;
@@ -44,6 +44,13 @@ namespace DrugTracker.Controllers
                 };
                 viewModels.Add(vm);
             }
+
+
+
+            // Sorting Logic: Accept Batch (ActionEnabled = true) first, then Inventory (ActionEnabled = false)
+            viewModels = viewModels.OrderByDescending(v => v.IsActionEnabled)
+                                   .ThenByDescending(v => v.Batch.ManufactureDate)
+                                   .ToList();
 
             // Note: The View expects BatchViewModel list for the top table. 
             // The Inventory list is separate. 

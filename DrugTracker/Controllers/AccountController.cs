@@ -47,10 +47,16 @@ namespace DrugTracker.Controllers
                         new Claim("UserId", user.UserId.ToString())
                     };
 
-                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var scheme = "ManufacturerScheme"; // Default fallback
+                    if (user.Role.Equals("Manufacturer", StringComparison.OrdinalIgnoreCase)) scheme = "ManufacturerScheme";
+                    else if (user.Role.Equals("Distributor", StringComparison.OrdinalIgnoreCase)) scheme = "DistributorScheme";
+                    else if (user.Role.Equals("Pharmacy", StringComparison.OrdinalIgnoreCase)) scheme = "PharmacyScheme";
+                    else if (user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase)) scheme = "AdminScheme";
+
+                    var identity = new ClaimsIdentity(claims, scheme);
                     var principal = new ClaimsPrincipal(identity);
 
-                    await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+                    await HttpContext.SignInAsync(scheme, principal);
 
                     // Redirect based on Role
                     switch (user.Role.ToUpper())
@@ -75,7 +81,13 @@ namespace DrugTracker.Controllers
 
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            // Sign out of all possible schemes
+            await HttpContext.SignOutAsync("ManufacturerScheme");
+            await HttpContext.SignOutAsync("DistributorScheme");
+            await HttpContext.SignOutAsync("PharmacyScheme");
+            await HttpContext.SignOutAsync("AdminScheme");
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme); // Just in case
+            
             return RedirectToAction("Index", "Home");
         }
 

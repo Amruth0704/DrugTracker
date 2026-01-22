@@ -11,24 +11,10 @@ namespace DrugTracker.Data
         {
             context.Database.EnsureCreated();
 
-            // Clear existing data (Order matters due to FKs)
-            // 1. Child tables first
-            context.BlockchainLedgers.RemoveRange(context.BlockchainLedgers);
-            context.BatchOwnershipHistories.RemoveRange(context.BatchOwnershipHistories);
-            context.Inventories.RemoveRange(context.Inventories);
-            context.DrugBatches.RemoveRange(context.DrugBatches);
-            
-            // 2. Parent tables (except Org type lookups if any, but here Users depend on Orgs)
-            context.Users.RemoveRange(context.Users);
-            context.Drugs.RemoveRange(context.Drugs);
-            context.Organizations.RemoveRange(context.Organizations);
-            
-            context.SaveChanges();
-
-            // Look for any users.
-            if (context.Users.Any())
+            // Check if database is already seeded
+            if (context.Organizations.Any())
             {
-                return;   // Should be empty now
+                return;   // DB has been seeded
             }
 
             // --- Organizations ---
