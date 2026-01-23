@@ -28,9 +28,44 @@ namespace DrugTracker.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = await _userRepository.ValidateUserAsync(model.Username, model.Password);
+                var user = await _userRepository.GetUserByUsernameAsync(model.Username);
+
                 if (user != null)
                 {
+                    // Check for Lockout
+                    if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTime.Now)
+                    {
+                        ModelState.AddModelError("", "Please try after 2 mins");
+                        return View(model);
+                    }
+
+                    // Check Password (re-using logic from ValidateUserAsync or doing it here, 
+                    // limiting changes to Controller if possible, but ValidateUserAsync logic is simple)
+                    // Since ValidateUserAsync does password check, let's use it but we need to know if it failed due to password.
+                    // We already fetched 'user', so let's verify password manually here or rely on Repository if we want to keep logic encapsulated.
+                    // However, to reuse existing Repository logic without changing its signature significantly:
+                    // We can call ValidateUserAsync. If null, it means password failed (since we know user exists).
+                    
+                    var validUser = await _userRepository.ValidateUserAsync(model.Username, model.Password);
+
+                    if (validUser == null)
+                    {
+                        // Login Failed
+                        user.AccessFailedCount++;
+                        if (user.AccessFailedCount >= 3)
+                        {
+                            user.LockoutEnd = DateTime.Now.AddMinutes(2);
+                            ModelState.AddModelError("", "Please try after 2 mins");
+                        }
+                        else
+                        {
+                            ModelState.AddModelError("", "Invalid username or password");
+                        }
+                        await _userRepository.UpdateUserAsync(user);
+                        return View(model);
+                    }
+
+                    // Login Success
                     // Enforce Role Check if ExpectedRole is set
                     if (!string.IsNullOrEmpty(model.ExpectedRole) && 
                         !string.Equals(user.Role, model.ExpectedRole, StringComparison.OrdinalIgnoreCase))
@@ -38,6 +73,11 @@ namespace DrugTracker.Controllers
                         ModelState.AddModelError("", $"Invalid credentials for {model.ExpectedRole}. You are a {user.Role}.");
                         return View(model);
                     }
+
+                    // Reset Lockout
+                    user.AccessFailedCount = 0;
+                    user.LockoutEnd = null;
+                    await _userRepository.UpdateUserAsync(user);
 
                     var claims = new List<Claim>
                     {

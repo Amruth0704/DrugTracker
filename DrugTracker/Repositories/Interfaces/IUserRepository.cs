@@ -8,5 +8,6 @@ namespace DrugTracker.Repositories.Interfaces
         Task<User?> GetUserByUsernameAsync(string username);
         Task<User?> ValidateUserAsync(string username, string password);
         Task<Organization?> GetOrganizationByIdAsync(int orgId);
+        Task UpdateUserAsync(User user);
     }
 }
