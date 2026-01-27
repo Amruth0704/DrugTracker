@@ -5,13 +5,33 @@
     ViewData["Title"] = "Batch Details";
     var history = ViewBag.History as IEnumerable<BatchOwnershipHistory>;
     var ledger = ViewBag.Ledger as IEnumerable<BlockchainLedger>;
-    bool isTampered = false; // Add logic if ledger checks fail
+
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-shield-check text-success"></i> Batch Verification: @Model.DrugBatchId</h2>
-        <span class="badge bg-success fs-5">Blockchain Verified</span>
+        <h2><i class="bi bi-shield-check"></i> Batch Verification: @Model.DrugBatchId</h2>
+        @if (ViewBag.IsTampered == true)
+        {
+            <div class="alert alert-danger w-100 mt-3 shadow">
+                <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> TAMPERING DETECTED</h4>
+                <p>The system has detected inconsistencies between the current data and the immutable Blockchain Ledger.</p>
+                <hr>
+                <ul class="mb-0">
+                    @if (ViewBag.ValidationErrors != null)
+                    {
+                        foreach (string error in ViewBag.ValidationErrors)
+                        {
+                            <li><strong>@error</strong></li>
+                        }
+                    }
+                </ul>
+            </div>
+        }
+        else
+        {
+            <span class="badge bg-success fs-5">Blockchain Verified <i class="bi bi-check-circle-fill"></i></span>
+        }
     </div>
 
     <div class="card mb-4 shadow-sm">
