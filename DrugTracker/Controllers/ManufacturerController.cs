@@ -16,11 +16,14 @@ namespace DrugTracker.Controllers
         private readonly IDrugBatchRepository _batchRepository;
         private readonly DrugTracker.Data.DrugTrackerDbContext _context; // Direct context access for dropdowns/lookups if repository doesn't have it
 
-        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, DrugTracker.Data.DrugTrackerDbContext context)
+        private readonly IBlockchainService _blockchainService;
+
+        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, DrugTracker.Data.DrugTrackerDbContext context, IBlockchainService blockchainService)
         {
             _batchService = batchService;
             _batchRepository = batchRepository;
             _context = context;
+            _blockchainService = blockchainService;
         }
 
         public async Task<IActionResult> Dashboard()
@@ -234,6 +237,9 @@ namespace DrugTracker.Controllers
                              batch.ExpiryDate = model.ManufactureDate.AddYears(3);
                         }
 
+                        // BLOCKCHAIN RECORD
+                        await _blockchainService.RecordActionAsync(batch.DrugBatchId, "BATCH_EDITED", orgId, null, batch.QuantityProduced);
+
                         _context.Update(batch);
                         await _context.SaveChangesAsync();
                         TempData["Message"] = "Batch updated successfully.";
@@ -282,6 +288,12 @@ namespace DrugTracker.Controllers
                      TempData["Error"] = "Batch not found or unauthorized.";
                      return RedirectToAction("Dashboard");
                 }
+
+                // BLOCKCHAIN RECORD (Before Delete, to ensure ID references are valid if needed, or after? Ledger is separate table so Before/After is fine, but usually Record *then* Delete if we want to trace it. 
+                // However, if we delete the batch, FK constraints might fail if Ledger points to Batch?
+                // Ledger usually stores BatchId as string to keep history even if Batch Deleted. 
+                // Checks Models/BlockchainLedger.cs -> DrugBatchId is string. No FK. Good.
+                await _blockchainService.RecordActionAsync(batchId, "BATCH_DELETED", orgId, null, 0);
 
                 _context.DrugBatches.Remove(batch);
                 await _context.SaveChangesAsync();

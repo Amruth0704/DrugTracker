@@ -42,29 +42,53 @@ namespace DrugTracker.Controllers
             var validationErrors = new List<string>();
             bool isTampered = false;
 
-            // 1. Validate Batch Creation
-            var createdLedger = ledger.FirstOrDefault(l => l.Action == "BATCH_CREATED");
-            if (createdLedger != null)
+            // 1. Check for Deletion
+            var deletedLedger = ledger.FirstOrDefault(l => l.Action == "BATCH_DELETED");
+            if (deletedLedger != null)
             {
-                if (batch.QuantityProduced != createdLedger.Quantity)
+                isTampered = true;
+                validationErrors.Add("BATCH DELETED! This batch has been deleted by the manufacturer and should not exist.");
+            }
+
+            // 2. Validate Batch Creation/Edit
+            // Find the LATEST authoritative record from Manufacturer (Created OR Edited)
+            var authoritativeLedger = ledger
+                .Where(l => l.Action == "BATCH_CREATED" || l.Action == "BATCH_EDITED")
+                .OrderByDescending(l => l.ActionTime)
+                .FirstOrDefault();
+
+            if (authoritativeLedger != null)
+            {
+                if (batch.QuantityProduced != authoritativeLedger.Quantity)
                 {
                     isTampered = true;
-                    validationErrors.Add($"Batch Quantity Mismatch! Current: {batch.QuantityProduced}, Ledger: {createdLedger.Quantity}");
+                    validationErrors.Add($"Batch Quantity Mismatch! Current: {batch.QuantityProduced}, Ledger ({authoritativeLedger.Action}): {authoritativeLedger.Quantity}");
                 }
-                if (batch.CreatedByOrgId != createdLedger.FromOrgId)
+                if (batch.CreatedByOrgId != authoritativeLedger.FromOrgId)
                 {
                     isTampered = true;
                     validationErrors.Add("Batch Manufacturer Mismatch!");
                 }
             }
+            else
+            {
+                // If no creation record exists at all?
+                 isTampered = true;
+                 validationErrors.Add("No Blockchain Creation Record Found!");
+            }
 
-            // 2. Validate Pharmacy Inventory (if applicable)
+            // 3. Validate Pharmacy Inventory (if applicable)
+
+            // 3. Validate Pharmacy Inventory (if applicable)
             var acceptedLedger = ledger.FirstOrDefault(l => l.Action == "ACCEPTED_BY_PHARMACY");
             if (acceptedLedger != null && acceptedLedger.ToOrgId.HasValue)
             {
                 var inventory = await _inventoryRepository.GetInventoryItemAsync(acceptedLedger.ToOrgId.Value, 0, batchId);
                 if (inventory != null)
                 {
+                   // Validation: Inventory ReceivedQty must match what was recorded when ACCEPTED.
+                   // Note: If batch was edited AFTER acceptance (which shouldn't happen per business rules), 
+                   // the Acceptance record remains the truth of what THEY received.
                    if (inventory.ReceivedQty != acceptedLedger.Quantity)
                    {
                        isTampered = true;
