@@ -22,6 +22,8 @@ namespace DrugTracker.Models
         [Range(0, int.MaxValue)]
         public int AvailableQty { get; set; }
 
+        public int ReceivedQty { get; set; }
+
         public DateTime LastUpdated { get; set; } = DateTime.Now;
     }
 }

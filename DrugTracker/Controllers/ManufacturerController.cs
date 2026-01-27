@@ -19,12 +19,14 @@ namespace DrugTracker.Controllers
         private readonly DrugTracker.Data.DrugTrackerDbContext _context; // Direct context access for dropdowns/lookups if repository doesn't have it
         private readonly IConfiguration _configuration; // Added for IConfiguration
 
-        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, DrugTracker.Data.DrugTrackerDbContext context, IConfiguration configuration)
+        private readonly IBlockchainService _blockchainService;
+
+        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, DrugTracker.Data.DrugTrackerDbContext context, IBlockchainService blockchainService)
         {
             _batchService = batchService;
             _batchRepository = batchRepository;
             _context = context;
-            _configuration = configuration; // Initialized IConfiguration
+            _blockchainService = blockchainService;
         }
 
         public async Task<IActionResult> Dashboard()
@@ -42,9 +44,12 @@ namespace DrugTracker.Controllers
                 var last = history.LastOrDefault();
                 string transferredTo = "N/A";
 
-                if (last != null && last.ActionType == "TRANSFERRED")
+                // Find the transfer action initiated by THIS manufacturer
+                var transferRecord = history.FirstOrDefault(h => h.ActionType == "TRANSFERRED" && h.FromOrgId == orgId);
+                
+                if (transferRecord != null)
                 {
-                   var toOrg = await _context.Organizations.FindAsync(last.ToOrgId);
+                   var toOrg = await _context.Organizations.FindAsync(transferRecord.ToOrgId);
                    transferredTo = toOrg?.OrgName ?? "Unknown";
                 }
 
@@ -283,7 +288,11 @@ namespace DrugTracker.Controllers
                              batch.ExpiryDate = model.ManufactureDate.AddYears(3);
                         }
 
-                        await _batchService.UpdateBatchAsync(batch, userId);
+                        // BLOCKCHAIN RECORD
+                        await _blockchainService.RecordActionAsync(batch.DrugBatchId, "BATCH_EDITED", orgId, null, batch.QuantityProduced);
+
+                        _context.Update(batch);
+                        await _context.SaveChangesAsync();
                         TempData["Message"] = "Batch updated successfully.";
                     }
 
@@ -333,8 +342,15 @@ namespace DrugTracker.Controllers
                      TempData["Error"] = "Batch not found or unauthorized.";
                      return RedirectToAction("Dashboard");
                 }
-                // Atomic delete via Service (includes Ledger logging)
-                await _batchService.DeleteBatchAsync(batchId, userId);
+
+                // BLOCKCHAIN RECORD (Before Delete, to ensure ID references are valid if needed, or after? Ledger is separate table so Before/After is fine, but usually Record *then* Delete if we want to trace it. 
+                // However, if we delete the batch, FK constraints might fail if Ledger points to Batch?
+                // Ledger usually stores BatchId as string to keep history even if Batch Deleted. 
+                // Checks Models/BlockchainLedger.cs -> DrugBatchId is string. No FK. Good.
+                await _blockchainService.RecordActionAsync(batchId, "BATCH_DELETED", orgId, null, 0);
+
+                _context.DrugBatches.Remove(batch);
+                await _context.SaveChangesAsync();
                 
                 TempData["Message"] = "Batch deleted successfully.";
             }

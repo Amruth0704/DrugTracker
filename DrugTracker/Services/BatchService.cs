@@ -230,6 +230,7 @@ namespace DrugTracker.Services
                     // DrugId = batch.DrugId, // Not in model
                     DrugBatchId = batchId,
                     AvailableQty = batch.QuantityProduced,
+                    ReceivedQty = batch.QuantityProduced,
                     LastUpdated = DateTime.Now
                 };
                 await _unitOfWork.Inventory.AddOrUpdateInventoryAsync(inventory);

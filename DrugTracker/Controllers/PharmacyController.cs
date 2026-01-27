@@ -93,27 +93,11 @@ namespace DrugTracker.Controllers
             {
                 DrugBatchId = i.DrugBatchId,
                 DrugName = i.DrugBatch?.Drug?.DrugName ?? "Unknown",
-                TotalQuantityReceived = i.DrugBatch?.QuantityProduced ?? 0, // Simplified: Assuming we received the whole batch or tracked elsewhere. 
-                // Actually, Inventory doesn't track "TotalReceived" explicitly in the model shown in Step 100, 
-                // but usually In-stock + Sold = Total. 
-                // Let's assume for now: AvailableQty (from Inv) is what we have. 
-                // But request asks for "Total Quantity Received".
-                // We'll calculate: Available + (Sold? We don't track Sold in Inventory table? We rely on Ledger?). 
-                // Wait, User Request: "Inventory Page... Columns: ... Quantity Sold".
-                // I need to fetch Sold quantity. Ledger? Or Inventory?
-                // Step 100: Inventory has `AvailableQty`. No `SoldQty`.
-                // I need to calculate Sold.
-                // Sold = Total Produced (if we received whole batch) - Available? 
-                // Or check `BatchOwnershipHistory` for quantity?
-                // Let's assume for this "Basic" implementation: Sold is derived if possible, or 0 if we can't easily track.
-                // Actually `_batchService.SellDrugAsync` updates ledger and decreases inventory.
-                // I'll leave QuantitySold as placeholder or derived if I can.
-                // Update: I'll try to find "Total Initial" from Batch.QuantityProduced (assuming Pharmacy got full batch).
-                // If Pharmacy got partial, we need dispatch info.
-                // Let's assume Pharmacy receives FULL batch for this MVP logic.
+
                 
                 AvailableQty = i.AvailableQty,
-                QuantitySold = (i.DrugBatch?.QuantityProduced ?? 0) - i.AvailableQty, 
+                ReceivedQty = i.ReceivedQty,
+                QuantitySold = i.ReceivedQty - i.AvailableQty, 
                 ExpiryDate = i.DrugBatch?.ExpiryDate ?? DateTime.MinValue
             }).ToList();
 

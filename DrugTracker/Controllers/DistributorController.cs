@@ -44,15 +44,13 @@ namespace DrugTracker.Controllers
                 bool isOurs = last != null && last.ToOrgId == orgId && last.ActionType == "TRANSFERRED";
                 
                 string transferredTo = "N/A";
-                // If we transferred it (ActionType == TRANSFERRED and FromOrg == Us), find out who we sent it to
-                // Wait, if LastAction is TRANSFERRED, checks depend on who is viewing.
-                // If distributor is viewing:
-                // 1. They received it (Status: Transferred, To: Dist) -> Transferred To: N/A (Previous owner handled elsewhere)
-                // 2. They sent it (Status: Transferred, From: Dist) -> Transferred To: Pharmacy
-                
-                if (last != null && last.ActionType == "TRANSFERRED" && last.FromOrgId == orgId)
+
+                // Find the transfer action initiated by THIS distributor
+                var transferRecord = history.FirstOrDefault(h => h.ActionType == "TRANSFERRED" && h.FromOrgId == orgId);
+
+                if (transferRecord != null)
                 {
-                    var toOrg = await _context.Organizations.FindAsync(last.ToOrgId);
+                    var toOrg = await _context.Organizations.FindAsync(transferRecord.ToOrgId);
                     transferredTo = toOrg?.OrgName ?? "Unknown";
                 }
 
