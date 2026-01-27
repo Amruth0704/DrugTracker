@@ -37,7 +37,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.Cookie.Name = "DrugTracker.Manufacturer";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(3); // 3 minutes timeout
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(3);
         options.SlidingExpiration = true;
     })
     .AddCookie("DistributorScheme", options =>
@@ -45,7 +45,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.Cookie.Name = "DrugTracker.Distributor";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(3); // 3 minutes timeout
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(3);
         options.SlidingExpiration = true;
     })
     .AddCookie("PharmacyScheme", options =>
@@ -53,7 +53,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.Cookie.Name = "DrugTracker.Pharmacy";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(3); // 3 minutes timeout
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(3);
         options.SlidingExpiration = true;
     })
     .AddCookie("AdminScheme", options =>
@@ -61,7 +61,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.Cookie.Name = "DrugTracker.Admin";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(3); // 3 minutes timeout
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(3);
         options.SlidingExpiration = true;
     });
 

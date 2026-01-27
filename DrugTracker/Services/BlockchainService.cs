@@ -20,6 +20,10 @@ namespace DrugTracker.Services
 
         public async Task RecordActionAsync(string batchId, string action, int? fromOrgId, int? toOrgId, int? quantity)
         {
+            // 1. Get the last record to find the PreviousHash
+            var lastEntry = (await _unitOfWork.Ledger.GetLedgerByBatchIdAsync(batchId)).LastOrDefault();
+            string prevHash = lastEntry?.CurrentHash ?? "0"; // Genesis hash for this batch
+
             var entry = new BlockchainLedger
             {
                 DrugBatchId = batchId,
@@ -27,11 +31,24 @@ namespace DrugTracker.Services
                 FromOrgId = fromOrgId,
                 ToOrgId = toOrgId,
                 Quantity = quantity,
-                ActionTime = System.DateTime.Now
+                ActionTime = System.DateTime.Now,
+                PreviousHash = prevHash
             };
 
+            // 2. Calculate CurrentHash (BatchId + Action + Qty + PrevHash)
+            string dataToHash = $"{batchId}{action}{quantity ?? 0}{prevHash}";
+            entry.CurrentHash = ComputeHash(dataToHash);
+
             await _unitOfWork.Ledger.AddEntryAsync(entry);
-            // Verify? In a real system we might re-hash the chain here.
+        }
+
+        private string ComputeHash(string input)
+        {
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                byte[] bytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+                return System.BitConverter.ToString(bytes).Replace("-", "").ToLower();
+            }
         }
     }
 }

@@ -9,6 +9,8 @@ namespace DrugTracker.Services
     public interface IBatchService
     {
         Task<DrugBatch> CreateBatchAsync(int drugId, int quantity, DateTime manufacturingDate, DateTime expiryDate, int manufOrgId, int userId);
+        Task UpdateBatchAsync(DrugBatch batch, int userId);
+        Task DeleteBatchAsync(string batchId, int userId);
         Task DispatchToDistributorAsync(string batchId, int fromOrgId, int toOrgId, int userId);
         Task DispatchToPharmacyAsync(string batchId, int fromOrgId, int toOrgId, int userId);
         Task AcceptBatchAtPharmacyAsync(string batchId, int pharmacyOrgId, int userId);
@@ -90,9 +92,9 @@ namespace DrugTracker.Services
                     ToOrgId = manufOrgId, 
                     ActionTime = DateTime.Now
                 };
-                 await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history);
+                await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history);
 
-                // Blockchain
+                // Blockchain Ledger
                 await _blockchainService.RecordActionAsync(batchId, "BATCH_CREATED", manufOrgId, null, quantity);
 
                 await _unitOfWork.CommitTransactionAsync();
@@ -103,6 +105,38 @@ namespace DrugTracker.Services
                 await _unitOfWork.RollbackTransactionAsync();
                 throw;
             }
+        }
+
+        public async Task UpdateBatchAsync(DrugBatch batch, int userId)
+        {
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                await _unitOfWork.DrugBatches.UpdateAsync(batch);
+                
+                // Record update in ledger
+                await _blockchainService.RecordActionAsync(batch.DrugBatchId, "BATCH_UPDATED", null, null, batch.QuantityProduced);
+                
+                await _unitOfWork.CommitTransactionAsync();
+            }
+            catch { await _unitOfWork.RollbackTransactionAsync(); throw; }
+        }
+
+        public async Task DeleteBatchAsync(string batchId, int userId)
+        {
+             await _unitOfWork.BeginTransactionAsync();
+             try
+             {
+                 // Record deletion in ledger before deleting the records
+                 await _blockchainService.RecordActionAsync(batchId, "BATCH_DELETED", null, null, null);
+                 
+                 // Note: Ideally we'd also clean up history records if necessary, 
+                 // but Repository.DeleteAsync for DrugBatch usually handles cascading or manual removal.
+                 await _unitOfWork.DrugBatches.DeleteAsync(batchId);
+                 
+                 await _unitOfWork.CommitTransactionAsync();
+             }
+             catch { await _unitOfWork.RollbackTransactionAsync(); throw; }
         }
 
         public async Task DispatchToDistributorAsync(string batchId, int fromOrgId, int toOrgId, int userId)

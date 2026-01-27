@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Net;
+using System.Net.Sockets;
 
 namespace DrugTracker.Controllers
 {
@@ -15,6 +17,7 @@ namespace DrugTracker.Controllers
         private readonly IBatchService _batchService;
         private readonly IDrugBatchRepository _batchRepository;
         private readonly DrugTracker.Data.DrugTrackerDbContext _context; // Direct context access for dropdowns/lookups if repository doesn't have it
+        private readonly IConfiguration _configuration; // Added for IConfiguration
 
         private readonly IBlockchainService _blockchainService;
 
@@ -53,11 +56,55 @@ namespace DrugTracker.Controllers
                 var vm = new BatchViewModel
                 {
                     Batch = b,
-                    LatestAction = last?.ActionType ?? "N/A",
-                    IsActionEnabled = (last?.ActionType == "CREATED" || last?.ActionType == "BATCH_CREATED"),
+                    LatestAction = last?.ActionType ?? "CREATED",
+                    IsActionEnabled = (last == null || 
+                                     string.Equals(last.ActionType, "CREATED", StringComparison.OrdinalIgnoreCase) || 
+                                     string.Equals(last.ActionType, "BATCH_CREATED", StringComparison.OrdinalIgnoreCase)),
                     TransferredToOrgName = transferredTo
                 };
                 viewModels.Add(vm);
+            }
+
+
+
+            // QR Code Generation
+            using (var qrGenerator = new QRCoder.QRCodeGenerator())
+            {
+                foreach (var vm in viewModels)
+                {
+                    // Generate Unique Verification Link
+                    string publicBaseUrl = _configuration["PublicBaseUrl"];
+                    string host = Request.Host.Value;
+                    string scheme = Request.Scheme;
+
+                    if (!string.IsNullOrEmpty(publicBaseUrl))
+                    {
+                        // Ensure protocol is present
+                        if (!publicBaseUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+                            !publicBaseUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                        {
+                            publicBaseUrl = "http://" + publicBaseUrl;
+                        }
+
+                        publicBaseUrl = publicBaseUrl.TrimEnd('/');
+                        string verificationUrl = $"{publicBaseUrl}/Verification/Verify?batchId={vm.Batch.DrugBatchId}";
+                        GenerateQRCode(vm, qrGenerator, verificationUrl);
+                    }
+                    else
+                    {
+                        // Fallback to auto-detection (Same WiFi / Localhost)
+                        if (host.Contains("localhost") || host.Contains("127.0.0.1"))
+                        {
+                            var localIp = GetLocalIPAddress();
+                            if (!string.IsNullOrEmpty(localIp))
+                            {
+                                host = host.Replace("localhost", localIp).Replace("127.0.0.1", localIp);
+                            }
+                        }
+                        string verificationUrl = $"{scheme}://{host}/Verification/Verify?batchId={vm.Batch.DrugBatchId}";
+                        GenerateQRCode(vm, qrGenerator, verificationUrl);
+                    }
+                }
             }
 
             // Sort: Actionable items first, then by Creation Date
@@ -156,7 +203,9 @@ namespace DrugTracker.Controllers
             // Check if editable (Pre-Dispatch)
             var history = await _batchRepository.GetOwnershipHistoryAsync(id);
             var last = history.LastOrDefault();
-            if (last == null || (last.ActionType != "CREATED" && last.ActionType != "BATCH_CREATED"))
+            if (last != null && 
+                !string.Equals(last.ActionType, "CREATED", StringComparison.OrdinalIgnoreCase) && 
+                !string.Equals(last.ActionType, "BATCH_CREATED", StringComparison.OrdinalIgnoreCase))
             {
                 TempData["Error"] = "Batch cannot be edited after dispatch.";
                 return RedirectToAction("Dashboard");
@@ -192,7 +241,9 @@ namespace DrugTracker.Controllers
             // Strict Re-Verification
             var history = await _batchRepository.GetOwnershipHistoryAsync(id);
             var last = history.LastOrDefault();
-             if (last == null || (last.ActionType != "CREATED" && last.ActionType != "BATCH_CREATED"))
+             if (last != null && 
+                 !string.Equals(last.ActionType, "CREATED", StringComparison.OrdinalIgnoreCase) && 
+                 !string.Equals(last.ActionType, "BATCH_CREATED", StringComparison.OrdinalIgnoreCase))
             {
                 TempData["Error"] = "Batch cannot be edited after dispatch.";
                 return RedirectToAction("Dashboard");
@@ -271,11 +322,14 @@ namespace DrugTracker.Controllers
             try
             {
                 int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
+                int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
                 var history = await _batchRepository.GetOwnershipHistoryAsync(batchId);
                 var last = history.LastOrDefault();
 
                 // Strict Rule: Delete ONLY if Pre-Dispatch (CREATED or BATCH_CREATED)
-                if (last == null || (last.ActionType != "CREATED" && last.ActionType != "BATCH_CREATED"))
+                if (last != null && 
+                    !string.Equals(last.ActionType, "CREATED", StringComparison.OrdinalIgnoreCase) && 
+                    !string.Equals(last.ActionType, "BATCH_CREATED", StringComparison.OrdinalIgnoreCase))
                 {
                     TempData["Error"] = "Cannot delete batch. It has already been dispatched or does not exist.";
                     return RedirectToAction("Dashboard");
@@ -306,6 +360,29 @@ namespace DrugTracker.Controllers
             }
 
             return RedirectToAction("Dashboard");
+        }
+        private void GenerateQRCode(BatchViewModel vm, QRCoder.QRCodeGenerator qrGenerator, string verificationUrl)
+        {
+            var qrCodeData = qrGenerator.CreateQrCode(verificationUrl, QRCoder.QRCodeGenerator.ECCLevel.Q);
+            using (var qrCode = new QRCoder.PngByteQRCode(qrCodeData))
+            {
+                byte[] qrCodeBytes = qrCode.GetGraphic(20);
+                string base64Qr = Convert.ToBase64String(qrCodeBytes);
+                vm.QRCodeImage = $"data:image/png;base64,{base64Qr}";
+            }
+        }
+
+        private string GetLocalIPAddress()
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    return ip.ToString();
+                }
+            }
+            return string.Empty;
         }
     }
 }

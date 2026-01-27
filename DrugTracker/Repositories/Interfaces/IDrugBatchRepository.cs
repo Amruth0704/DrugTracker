@@ -12,7 +12,8 @@ namespace DrugTracker.Repositories.Interfaces
         Task<string?> GetDrugNameByIdAsync(int drugId);
         Task<int> GetBatchCountForDrugAsync(int drugId);
         Task AddAsync(DrugBatch batch);
-        Task UpdateAsync(DrugBatch batch); // Only for status updates if needed, though strictly we used Ledger for state
+        Task UpdateAsync(DrugBatch batch); 
+        Task DeleteAsync(string batchId);
         Task AddDispatchRecordAsync(BatchOwnershipHistory history);
         Task<IEnumerable<BatchOwnershipHistory>> GetOwnershipHistoryAsync(string batchId);
     }

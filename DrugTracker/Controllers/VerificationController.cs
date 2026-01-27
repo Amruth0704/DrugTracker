@@ -1,13 +1,17 @@
-using DrugTracker.Repositories.Interfaces;
+using DrugTracker.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DrugTracker.Controllers
 {
+    // Publicly accessible controller for verification
     public class VerificationController : Controller
     {
-        private readonly IDrugBatchRepository _batchRepository;
-        private readonly IBlockchainLedgerRepository _ledgerRepository;
+        private readonly DrugTracker.Repositories.Interfaces.IDrugBatchRepository _batchRepository;
+        private readonly DrugTracker.Repositories.Interfaces.IBlockchainLedgerRepository _ledgerRepository;
 
         private readonly IInventoryRepository _inventoryRepository;
 
@@ -18,21 +22,27 @@ namespace DrugTracker.Controllers
             _inventoryRepository = inventoryRepository;
         }
 
+        [HttpGet]
         public IActionResult Index()
         {
             return View();
         }
 
         [HttpGet]
-        public async Task<IActionResult> Track(string batchId)
+        public async Task<IActionResult> Verify(string batchId)
         {
-            if (string.IsNullOrEmpty(batchId)) return RedirectToAction("Index");
+            if (string.IsNullOrEmpty(batchId))
+            {
+                ViewBag.Error = "Please provide a valid Batch ID or Code.";
+                return View("Index");
+            }
 
             var batch = await _batchRepository.GetByBatchIdAsync(batchId);
+
             if (batch == null)
             {
-                ViewBag.Error = "Batch not found.";
-                return View("Index");
+                ViewBag.Error = "Batch not found. Please check the Batch ID / Code.";
+                return View("Index"); 
             }
 
             var history = await _batchRepository.GetOwnershipHistoryAsync(batchId);

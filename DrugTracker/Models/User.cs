@@ -20,6 +20,9 @@ namespace DrugTracker.Models
         [StringLength(30)]
         public string Role { get; set; } = string.Empty;
 
+        public int AccessFailedCount { get; set; }
+        public DateTime? LockoutEnd { get; set; }
+
         [Required]
         public int OrgId { get; set; }
 

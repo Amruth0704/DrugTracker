@@ -20,5 +20,7 @@ namespace DrugTracker.Models
         public int? Quantity { get; set; }
 
         public DateTime ActionTime { get; set; } = DateTime.Now;
+        public string? PreviousHash { get; set; }
+        public string? CurrentHash { get; set; }
     }
 }

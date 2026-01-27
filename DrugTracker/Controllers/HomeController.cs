@@ -15,12 +15,6 @@ namespace DrugTracker.Controllers
 
         public IActionResult Index()
         {
-            if (User.Identity != null && User.Identity.IsAuthenticated)
-            {
-                // If an authenticated user tries to access the Home page, force them to logout.
-                // This prevents them from seeing the landing page while logged in.
-                return RedirectToAction("Logout", "Account");
-            }
             return View();
         }
 

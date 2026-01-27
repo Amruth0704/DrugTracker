@@ -8,5 +8,6 @@ namespace DrugTracker.Models.ViewModels
         public string LatestAction { get; set; } = string.Empty;
         public bool IsActionEnabled { get; set; } = true;
         public string TransferredToOrgName { get; set; } = "N/A";
+        public string QRCodeImage { get; set; } // Base64 encoded image
     }
 }
