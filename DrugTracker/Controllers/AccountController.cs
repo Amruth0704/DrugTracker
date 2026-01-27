@@ -119,6 +119,7 @@ namespace DrugTracker.Controllers
             return View(model);
         }
 
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<IActionResult> Logout()
         {
             // Sign out of all possible schemes
@@ -126,9 +127,9 @@ namespace DrugTracker.Controllers
             await HttpContext.SignOutAsync("DistributorScheme");
             await HttpContext.SignOutAsync("PharmacyScheme");
             await HttpContext.SignOutAsync("AdminScheme");
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme); // Just in case
             
-            return RedirectToAction("Index", "Home");
+            // Redirect to Login to ensure user is fully logged out and cannot hit dashboard via back button easily
+            return RedirectToAction("Login", "Account");
         }
 
         public IActionResult RedirectToDashboard()

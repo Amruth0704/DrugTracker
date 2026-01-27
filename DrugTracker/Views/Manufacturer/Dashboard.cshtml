@@ -64,6 +64,7 @@
                             <th>Exp Date</th>
                             <th>Status</th>
                             <th>Transferred To</th>
+                            <th>QR Code</th>
                             <th class="text-end px-3">Actions</th>
                         </tr>
                     </thead>
@@ -82,6 +83,12 @@
                                     </span>
                                 </td>
                                 <td>@item.TransferredToOrgName</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.QRCodeImage))
+                                    {
+                                        <img src="@item.QRCodeImage" alt="QR Code" style="width: 50px; height: 50px;" />
+                                    }
+                                </td>
                                 <td class="text-end px-3">
                                     @if (item.IsActionEnabled)
                                     {

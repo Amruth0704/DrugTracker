@@ -4,14 +4,33 @@
 @{
     ViewData["Title"] = "Batch Details";
     var history = ViewBag.History as IEnumerable<BatchOwnershipHistory>;
-    var ledger = ViewBag.Ledger as IEnumerable<BlockchainLedger>;
-    bool isTampered = false; // Add logic if ledger checks fail
+    var ledger = (ViewBag.Ledger as IEnumerable<BlockchainLedger>)?.OrderBy(l => l.ActionTime).ToList();
+    
+    bool isTampered = false;
+    if (ledger != null && ledger.Count > 1)
+    {
+        for (int i = 1; i < ledger.Count; i++)
+        {
+            if (ledger[i].PreviousHash != ledger[i - 1].CurrentHash)
+            {
+                isTampered = true;
+                break;
+            }
+        }
+    }
 }
 
 <div class="container mt-4">
+    @if (isTampered)
+    {
+        <div class="alert alert-danger shadow-sm mb-4">
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> TAMPERING DETECTED!</h4>
+            <p>The cryptographic chain for this batch has been broken. The authenticity of this medicine cannot be guaranteed.</p>
+        </div>
+    }
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-shield-check text-success"></i> Batch Verification: @Model.DrugBatchId</h2>
-        <span class="badge bg-success fs-5">Blockchain Verified</span>
+        <span class="badge bg-primary fs-5">Batch ID / Code</span>
     </div>
 
     <div class="card mb-4 shadow-sm">
@@ -59,7 +78,8 @@
                     <th>Action</th>
                     <th>From</th>
                     <th>To</th>
-                    <th>Hash (Simulated)</th>
+                    <th>Previous Hash</th>
+                    <th>Current Hash</th>
                 </tr>
             </thead>
             <tbody>
@@ -72,7 +92,8 @@
                             <td>@l.Action</td>
                             <td>@l.FromOrgId</td>
                             <td>@l.ToOrgId</td>
-                            <td><code class="text-muted">@GetHashCode(l)</code></td>
+                            <td><code class="text-muted" title="@l.PreviousHash">@(l.PreviousHash?.Length > 10 ? l.PreviousHash.Substring(0, 10) + "..." : l.PreviousHash)</code></td>
+                            <td><code class="text-dark" title="@l.CurrentHash">@(l.CurrentHash?.Length > 10 ? l.CurrentHash.Substring(0, 10) + "..." : l.CurrentHash)</code></td>
                         </tr>
                     }
                 }
@@ -86,13 +107,5 @@
 </div>
 
 @functions {
-    string GetHashCode(BlockchainLedger l) {
-        // Simple hash simulation for display
-        var input = $"{l.DrugBatchId}{l.Action}{l.ActionTime.Ticks}";
-        using (var sha = System.Security.Cryptography.SHA256.Create()) {
-            var bytes = System.Text.Encoding.UTF8.GetBytes(input);
-            var hash = sha.ComputeHash(bytes);
-            return Convert.ToBase64String(hash).Substring(0, 15) + "...";
-        }
-    }
+    // No extra functions needed for now
 }

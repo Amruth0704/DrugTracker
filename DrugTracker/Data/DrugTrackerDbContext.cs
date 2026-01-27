@@ -54,7 +54,6 @@ namespace DrugTracker.Data
                 .HasIndex(d => d.DrugCode)
                 .IsUnique();
 
-            // DrugBatch
             modelBuilder.Entity<DrugBatch>()
                 .Property(d => d.CreatedAt)
                 .HasDefaultValueSql("SYSDATETIME()");
@@ -95,6 +94,8 @@ namespace DrugTracker.Data
             
             // BlockchainLedger
             modelBuilder.Entity<BlockchainLedger>()
+                .HasAnnotation("SqlServer:IsLedger", true)
+                .HasAnnotation("SqlServer:IsAppendOnly", true)
                 .Property(b => b.ActionTime)
                 .HasDefaultValueSql("SYSDATETIME()");
             

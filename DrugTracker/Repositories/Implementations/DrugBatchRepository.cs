@@ -21,6 +21,21 @@ namespace DrugTracker.Repositories.Implementations
         {
             await _context.DrugBatches.AddAsync(batch);
         }
+ 
+        public async Task UpdateAsync(DrugBatch batch)
+        {
+            _context.DrugBatches.Update(batch);
+            await Task.CompletedTask;
+        }
+ 
+        public async Task DeleteAsync(string batchId)
+        {
+            var batch = await _context.DrugBatches.FindAsync(batchId);
+            if (batch != null)
+            {
+                _context.DrugBatches.Remove(batch);
+            }
+        }
 
         public async Task AddDispatchRecordAsync(BatchOwnershipHistory history)
         {
@@ -93,10 +108,5 @@ namespace DrugTracker.Repositories.Implementations
                 .ToListAsync();
         }
 
-        public async Task UpdateAsync(DrugBatch batch)
-        {
-             _context.DrugBatches.Update(batch);
-             await Task.CompletedTask;
-        }
     }
 }
