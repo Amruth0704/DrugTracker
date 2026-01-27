@@ -15,73 +15,129 @@ html {
 
 body {
   margin-bottom: 60px;
-  background-color: #f8f9fa; /* Light clean background */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f8f9fa;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.navbar-brand {
+  font-weight: 700;
 }
 
 /* --- Utilities --- */
 .text-gradient {
-    background: linear-gradient(135deg, #0d6efd, #6610f2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+  background: linear-gradient(135deg, #0d6efd, #6610f2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* --- Cards --- */
 .hover-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: none;
-    border-radius: 12px;
-    overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .hover-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* --- Hero Section --- */
 .hero-section {
-    padding: 80px 0;
-    background: linear-gradient(135deg, #ffffff 0%, #f1f3f5 100%);
-    border-radius: 0 0 50px 50px;
-    margin-bottom: 40px;
+  padding: 80px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #f1f3f5 100%);
+  border-radius: 0 0 50px 50px;
+  margin-bottom: 40px;
 }
 
 /* --- Animations --- */
 .fade-in-up {
-    animation: fadeInUp 0.8s ease-out forwards;
-    opacity: 0;
-    transform: translateY(20px);
+  animation: fadeInUp 0.8s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
 }
 
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+}
 
 @keyframes fadeInUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.float-animation {
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 /* --- Access Denied --- */
 .lock-icon {
-    font-size: 4rem;
-    color: #dc3545;
-    margin-bottom: 20px;
-    animation: shake 0.5s ease-in-out;
+  font-size: 4rem;
+  color: #dc3545;
+  margin-bottom: 20px;
+  animation: shake 0.5s ease-in-out;
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-5px);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(5px);
+  }
 }
 
 /* --- Badges --- */
 .badge-custom {
-    padding: 0.5em 0.8em;
-    border-radius: 20px;
-    font-weight: 500;
+  padding: 0.5em 0.8em;
+  border-radius: 20px;
+  font-weight: 500;
 }
