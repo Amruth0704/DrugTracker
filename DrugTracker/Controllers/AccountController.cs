@@ -28,52 +28,93 @@ namespace DrugTracker.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = await _userRepository.ValidateUserAsync(model.Username, model.Password);
-                if (user != null)
+                // 1. Check User Existence Check First
+                var existingUser = await _userRepository.GetUserByUsernameAsync(model.Username);
+                if (existingUser != null)
                 {
-                    // Enforce Role Check if ExpectedRole is set
-                    if (!string.IsNullOrEmpty(model.ExpectedRole) && 
-                        !string.Equals(user.Role, model.ExpectedRole, StringComparison.OrdinalIgnoreCase))
+                    // 2. Check Lockout
+                    if (existingUser.LockoutEnd.HasValue && existingUser.LockoutEnd.Value > DateTime.Now)
                     {
-                        ModelState.AddModelError("", $"Invalid credentials for {model.ExpectedRole}. You are a {user.Role}.");
+                        ModelState.AddModelError("", $"Account locked. Try again later.");
                         return View(model);
                     }
 
-                    var claims = new List<Claim>
+                    // 3. Validate Password
+                    var user = await _userRepository.ValidateUserAsync(model.Username, model.Password);
+                    if (user != null)
                     {
-                        new Claim(ClaimTypes.Name, user.UserName),
-                        new Claim(ClaimTypes.Role, user.Role),
-                        new Claim("OrgId", user.OrgId.ToString()),
-                        new Claim("UserId", user.UserId.ToString())
-                    };
+                        // Success -> Reset counters
+                        existingUser.AccessFailedCount = 0;
+                        existingUser.LockoutEnd = null;
+                        await _userRepository.UpdateUserAsync(existingUser);
 
-                    var scheme = "ManufacturerScheme"; // Default fallback
-                    if (user.Role.Equals("Manufacturer", StringComparison.OrdinalIgnoreCase)) scheme = "ManufacturerScheme";
-                    else if (user.Role.Equals("Distributor", StringComparison.OrdinalIgnoreCase)) scheme = "DistributorScheme";
-                    else if (user.Role.Equals("Pharmacy", StringComparison.OrdinalIgnoreCase)) scheme = "PharmacyScheme";
-                    else if (user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase)) scheme = "AdminScheme";
-
-                    var identity = new ClaimsIdentity(claims, scheme);
-                    var principal = new ClaimsPrincipal(identity);
-
-                    await HttpContext.SignInAsync(scheme, principal);
-
-                    // Redirect based on Role
-                    switch (user.Role.ToUpper())
+                        // ... Proceed with Login ...
+                        // Enforce Role Check if ExpectedRole is set
+                        if (!string.IsNullOrEmpty(model.ExpectedRole) && 
+                            !string.Equals(user.Role, model.ExpectedRole, StringComparison.OrdinalIgnoreCase))
+                        {
+                            ModelState.AddModelError("", $"Invalid credentials for {model.ExpectedRole}. You are a {user.Role}.");
+                            return View(model);
+                        }
+    
+                        var claims = new List<Claim>
+                        {
+                            new Claim(ClaimTypes.Name, user.UserName),
+                            new Claim(ClaimTypes.Role, user.Role),
+                            new Claim("OrgId", user.OrgId.ToString()),
+                            new Claim("UserId", user.UserId.ToString())
+                        };
+    
+                        var scheme = "ManufacturerScheme"; // Default fallback
+                        if (user.Role.Equals("Manufacturer", StringComparison.OrdinalIgnoreCase)) scheme = "ManufacturerScheme";
+                        else if (user.Role.Equals("Distributor", StringComparison.OrdinalIgnoreCase)) scheme = "DistributorScheme";
+                        else if (user.Role.Equals("Pharmacy", StringComparison.OrdinalIgnoreCase)) scheme = "PharmacyScheme";
+                        else if (user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase)) scheme = "AdminScheme";
+    
+                        var identity = new ClaimsIdentity(claims, scheme);
+                        var principal = new ClaimsPrincipal(identity);
+    
+                        await HttpContext.SignInAsync(scheme, principal);
+    
+                        // Redirect based on Role
+                        switch (user.Role.ToUpper())
+                        {
+                            case "MANUFACTURER":
+                                return RedirectToAction("Dashboard", "Manufacturer");
+                            case "DISTRIBUTOR":
+                                return RedirectToAction("Dashboard", "Distributor");
+                            case "PHARMACY":
+                                return RedirectToAction("Dashboard", "Pharmacy");
+                            case "ADMIN":
+                               // return RedirectToAction("Index", "Admin");
+                               return RedirectToAction("Index", "Home");
+                            default:
+                                return RedirectToAction("Index", "Home");
+                        }
+                    }
+                    else
                     {
-                        case "MANUFACTURER":
-                            return RedirectToAction("Dashboard", "Manufacturer");
-                        case "DISTRIBUTOR":
-                            return RedirectToAction("Dashboard", "Distributor");
-                        case "PHARMACY":
-                            return RedirectToAction("Dashboard", "Pharmacy");
-                        case "ADMIN":
-                           // return RedirectToAction("Index", "Admin");
-                           return RedirectToAction("Index", "Home");
-                        default:
-                            return RedirectToAction("Index", "Home");
+                        // Failed Login
+                        existingUser.AccessFailedCount++;
+                        if (existingUser.AccessFailedCount >= 3)
+                        {
+                            existingUser.LockoutEnd = DateTime.Now.AddMinutes(2);
+                        }
+                        await _userRepository.UpdateUserAsync(existingUser);
+                        
+                        if (existingUser.LockoutEnd.HasValue && existingUser.LockoutEnd.Value > DateTime.Now)
+                        {
+                             ModelState.AddModelError("", "Account locked for 2 minutes due to multiple failed attempts.");
+                        }
+                        else
+                        {
+                             ModelState.AddModelError("", "Invalid username or password");
+                        }
+                        return View(model);
                     }
                 }
+                
+                // User not found
                 ModelState.AddModelError("", "Invalid username or password");
             }
             return View(model);
