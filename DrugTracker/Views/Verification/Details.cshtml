@@ -4,16 +4,28 @@
 @{
     ViewData["Title"] = "Batch Details";
     var history = ViewBag.History as IEnumerable<BatchOwnershipHistory>;
-    var ledger = ViewBag.Ledger as IEnumerable<BlockchainLedger>;
+    var ledger = (ViewBag.Ledger as IEnumerable<BlockchainLedger>)?.OrderBy(l => l.ActionTime).ToList();
 
+    bool isHashChainBroken = false;
+    if (ledger != null && ledger.Count > 1)
+    {
+        for (int i = 1; i < ledger.Count; i++)
+        {
+            if (ledger[i].PreviousHash != ledger[i - 1].CurrentHash)
+            {
+                isHashChainBroken = true;
+                break;
+            }
+        }
+    }
 }
 
 <div class="container mt-4">
-    @if (isTampered)
+    @if (isHashChainBroken)
     {
         <div class="alert alert-danger shadow-sm mb-4">
-            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> TAMPERING DETECTED!</h4>
-            <p>The cryptographic chain for this batch has been broken. The authenticity of this medicine cannot be guaranteed.</p>
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> CRYPTOGRAPHIC TAMPERING DETECTED!</h4>
+            <p>The hash chain for this batch has been broken. This indicates that the record sequence in the blockchain ledger has been altered.</p>
         </div>
     }
     <div class="d-flex justify-content-between align-items-center mb-4">

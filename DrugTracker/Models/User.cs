@@ -20,7 +20,7 @@ namespace DrugTracker.Models
         [StringLength(30)]
         public string Role { get; set; } = string.Empty;
 
-        public int AccessFailedCount { get; set; }
+        public int AccessFailedCount { get; set; } = 0;
         public DateTime? LockoutEnd { get; set; }
 
         [Required]
@@ -32,8 +32,5 @@ namespace DrugTracker.Models
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
-
-        public int AccessFailedCount { get; set; } = 0;
-        public DateTime? LockoutEnd { get; set; }
     }
 }

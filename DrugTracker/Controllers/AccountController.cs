@@ -35,17 +35,10 @@ namespace DrugTracker.Controllers
                     // Check for Lockout
                     if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTime.Now)
                     {
-                        ModelState.AddModelError("", "Please try after 2 mins");
+                        ModelState.AddModelError("", "Account locked. Please try again later.");
                         return View(model);
                     }
 
-                    // Check Password (re-using logic from ValidateUserAsync or doing it here, 
-                    // limiting changes to Controller if possible, but ValidateUserAsync logic is simple)
-                    // Since ValidateUserAsync does password check, let's use it but we need to know if it failed due to password.
-                    // We already fetched 'user', so let's verify password manually here or rely on Repository if we want to keep logic encapsulated.
-                    // However, to reuse existing Repository logic without changing its signature significantly:
-                    // We can call ValidateUserAsync. If null, it means password failed (since we know user exists).
-                    
                     var validUser = await _userRepository.ValidateUserAsync(model.Username, model.Password);
 
                     if (validUser == null)
@@ -55,7 +48,7 @@ namespace DrugTracker.Controllers
                         if (user.AccessFailedCount >= 3)
                         {
                             user.LockoutEnd = DateTime.Now.AddMinutes(2);
-                            ModelState.AddModelError("", "Please try after 2 mins");
+                            ModelState.AddModelError("", "Account locked for 2 minutes due to multiple failed attempts.");
                         }
                         else
                         {
@@ -70,7 +63,7 @@ namespace DrugTracker.Controllers
                     if (!string.IsNullOrEmpty(model.ExpectedRole) && 
                         !string.Equals(user.Role, model.ExpectedRole, StringComparison.OrdinalIgnoreCase))
                     {
-                        ModelState.AddModelError("", $"Account locked. Try again later.");
+                        ModelState.AddModelError("", $"Unauthorized access. You do not have the {model.ExpectedRole} role.");
                         return View(model);
                     }
 
@@ -81,74 +74,36 @@ namespace DrugTracker.Controllers
 
                     var claims = new List<Claim>
                     {
-                        // Success -> Reset counters
-                        existingUser.AccessFailedCount = 0;
-                        existingUser.LockoutEnd = null;
-                        await _userRepository.UpdateUserAsync(existingUser);
+                        new Claim(ClaimTypes.Name, user.UserName),
+                        new Claim(ClaimTypes.Role, user.Role),
+                        new Claim("OrgId", user.OrgId.ToString()),
+                        new Claim("UserId", user.UserId.ToString())
+                    };
 
-                        // ... Proceed with Login ...
-                        // Enforce Role Check if ExpectedRole is set
-                        if (!string.IsNullOrEmpty(model.ExpectedRole) && 
-                            !string.Equals(user.Role, model.ExpectedRole, StringComparison.OrdinalIgnoreCase))
-                        {
-                            ModelState.AddModelError("", $"Invalid credentials for {model.ExpectedRole}. You are a {user.Role}.");
-                            return View(model);
-                        }
-    
-                        var claims = new List<Claim>
-                        {
-                            new Claim(ClaimTypes.Name, user.UserName),
-                            new Claim(ClaimTypes.Role, user.Role),
-                            new Claim("OrgId", user.OrgId.ToString()),
-                            new Claim("UserId", user.UserId.ToString())
-                        };
-    
-                        var scheme = "ManufacturerScheme"; // Default fallback
-                        if (user.Role.Equals("Manufacturer", StringComparison.OrdinalIgnoreCase)) scheme = "ManufacturerScheme";
-                        else if (user.Role.Equals("Distributor", StringComparison.OrdinalIgnoreCase)) scheme = "DistributorScheme";
-                        else if (user.Role.Equals("Pharmacy", StringComparison.OrdinalIgnoreCase)) scheme = "PharmacyScheme";
-                        else if (user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase)) scheme = "AdminScheme";
-    
-                        var identity = new ClaimsIdentity(claims, scheme);
-                        var principal = new ClaimsPrincipal(identity);
-    
-                        await HttpContext.SignInAsync(scheme, principal);
-    
-                        // Redirect based on Role
-                        switch (user.Role.ToUpper())
-                        {
-                            case "MANUFACTURER":
-                                return RedirectToAction("Dashboard", "Manufacturer");
-                            case "DISTRIBUTOR":
-                                return RedirectToAction("Dashboard", "Distributor");
-                            case "PHARMACY":
-                                return RedirectToAction("Dashboard", "Pharmacy");
-                            case "ADMIN":
-                               // return RedirectToAction("Index", "Admin");
-                               return RedirectToAction("Index", "Home");
-                            default:
-                                return RedirectToAction("Index", "Home");
-                        }
-                    }
-                    else
+                    var scheme = "ManufacturerScheme"; // Default fallback
+                    if (user.Role.Equals("Manufacturer", StringComparison.OrdinalIgnoreCase)) scheme = "ManufacturerScheme";
+                    else if (user.Role.Equals("Distributor", StringComparison.OrdinalIgnoreCase)) scheme = "DistributorScheme";
+                    else if (user.Role.Equals("Pharmacy", StringComparison.OrdinalIgnoreCase)) scheme = "PharmacyScheme";
+                    else if (user.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase)) scheme = "AdminScheme";
+
+                    var identity = new ClaimsIdentity(claims, scheme);
+                    var principal = new ClaimsPrincipal(identity);
+
+                    await HttpContext.SignInAsync(scheme, principal);
+
+                    // Redirect based on Role
+                    switch (user.Role.ToUpper())
                     {
-                        // Failed Login
-                        existingUser.AccessFailedCount++;
-                        if (existingUser.AccessFailedCount >= 3)
-                        {
-                            existingUser.LockoutEnd = DateTime.Now.AddMinutes(2);
-                        }
-                        await _userRepository.UpdateUserAsync(existingUser);
-                        
-                        if (existingUser.LockoutEnd.HasValue && existingUser.LockoutEnd.Value > DateTime.Now)
-                        {
-                             ModelState.AddModelError("", "Account locked for 2 minutes due to multiple failed attempts.");
-                        }
-                        else
-                        {
-                             ModelState.AddModelError("", "Invalid username or password");
-                        }
-                        return View(model);
+                        case "MANUFACTURER":
+                            return RedirectToAction("Dashboard", "Manufacturer");
+                        case "DISTRIBUTOR":
+                            return RedirectToAction("Dashboard", "Distributor");
+                        case "PHARMACY":
+                            return RedirectToAction("Dashboard", "Pharmacy");
+                        case "ADMIN":
+                            return RedirectToAction("Index", "Home");
+                        default:
+                            return RedirectToAction("Index", "Home");
                     }
                 }
                 

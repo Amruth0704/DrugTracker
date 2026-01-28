@@ -21,12 +21,13 @@ namespace DrugTracker.Controllers
 
         private readonly IBlockchainService _blockchainService;
 
-        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, DrugTracker.Data.DrugTrackerDbContext context, IBlockchainService blockchainService)
+        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, DrugTracker.Data.DrugTrackerDbContext context, IBlockchainService blockchainService, IConfiguration configuration)
         {
             _batchService = batchService;
             _batchRepository = batchRepository;
             _context = context;
             _blockchainService = blockchainService;
+            _configuration = configuration;
         }
 
         public async Task<IActionResult> Dashboard()

@@ -16,19 +16,8 @@ html {
 body {
   margin-bottom: 60px;
   background-color: #f8f9fa;
-  font-family: 'Outfit', sans-serif;
-  letter-spacing: -0.01em;
-  -webkit-font-smoothing: antialiased;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-.navbar-brand {
-  font-weight: 700;
+  /* Light clean background */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 /* --- Utilities --- */
