@@ -1,7 +1,8 @@
-using DrugTracker.Data;
+﻿using DrugTracker.Data;
 using DrugTracker.Models;
 using DrugTracker.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace DrugTracker.Repositories.Implementations
@@ -15,49 +16,67 @@ namespace DrugTracker.Repositories.Implementations
             _context = context;
         }
 
+        /*===============================================
+          READ: Organization by Id (VIEW)
+        ===============================================*/
         public async Task<Organization?> GetOrganizationByIdAsync(int orgId)
         {
-            return await _context.Organizations.FindAsync(orgId);
+            return await _context.Organizations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.OrgId == orgId);
         }
 
+        /*===============================================
+          READ: User by Username (VIEW)
+        ===============================================*/
         public async Task<User?> GetUserByUsernameAsync(string username)
         {
             return await _context.Users
                 .Include(u => u.Organization)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.UserName == username);
         }
 
+        /*===============================================
+          AUTH: Validate User (SP, no composition)
+        ===============================================*/
         public async Task<User?> ValidateUserAsync(string username, string password)
         {
-            // In a real app, verify hashed password. 
-            // For this project assuming simple comparison or previously hashed.
-            // The User model implies stored password (hopefully hashed).
-            // We'll implemented a simple check here.
-            var user = await GetUserByUsernameAsync(username);
-            
-            // Simplified check: Convert string to bytes and compare. 
-            // In reality, we should hash the input password with salt. 
-            // But for this existing DB structure, we'll try to match bytes.
-            // If the DB seeds password as raw bytes of string, this works.
-            if (user != null)
-            {
-               // Just for demo, assuming we accept any password if environment doesn't have proper hash util
-               // Or simpler: check if user exists. 
-               // Better: try standard encoding.
-               var inputBytes = System.Text.Encoding.UTF8.GetBytes(password);
-               if (user.PasswordHash.SequenceEqual(inputBytes))
-               {
-                   return user;
-               }
-               // Fallback for demo: if password is "password" (common dev seed)
-               if(password == "password" || password == "123456") return user;
-            }
-            return null;
+            var passwordBytes = System.Text.Encoding.UTF8.GetBytes(password);
+
+            var users = await _context.Users
+                .FromSqlRaw(
+                    @"EXEC HealthCare.sp_ValidateUser
+                        @UserName,
+                        @PasswordHash",
+                    new SqlParameter("@UserName", username),
+                    new SqlParameter("@PasswordHash", passwordBytes))
+                .AsNoTracking()
+                .ToListAsync(); // ⚠️ NO composition
+
+            return users.Count > 0 ? users[0] : null;
         }
+
+        /*===============================================
+          WRITE: Update User (SP)
+        ===============================================*/
         public async Task UpdateUserAsync(User user)
         {
-            _context.Users.Update(user);
-            await _context.SaveChangesAsync();
+            await _context.Database.ExecuteSqlRawAsync(
+                @"EXEC HealthCare.sp_UpdateUser
+                    @UserId,
+                    @Role,
+                    @OrgId,
+                    @IsActive,
+                    @AccessFailedCount,
+                    @LockoutEnd",
+                new SqlParameter("@UserId", user.UserId),
+                new SqlParameter("@Role", user.Role),
+                new SqlParameter("@OrgId", user.OrgId),
+                new SqlParameter("@IsActive", user.IsActive),
+                new SqlParameter("@AccessFailedCount", user.AccessFailedCount),
+                new SqlParameter("@LockoutEnd", (object?)user.LockoutEnd ?? DBNull.Value)
+            );
         }
     }
 }

@@ -1,9 +1,10 @@
 using DrugTracker.Data;
 using DrugTracker.Models;
+
 using DrugTracker.Repositories.Interfaces;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace DrugTracker.Repositories.Implementations
@@ -14,40 +15,100 @@ namespace DrugTracker.Repositories.Implementations
 
         public DrugBatchRepository(DrugTrackerDbContext context)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        /*====================================================
+          WRITE: Add Drug Batch
+        ====================================================*/
         public async Task AddAsync(DrugBatch batch)
         {
-            await _context.DrugBatches.AddAsync(batch);
+            await _context.Database.ExecuteSqlRawAsync(
+                @"EXEC HealthCare.sp_AddDrugBatch
+                    @DrugBatchId,
+                    @DrugId,
+                    @QuantityProduced,
+                    @ManufactureDate,
+                    @ExpiryDate,
+                    @CreatedByOrgId",
+                new SqlParameter("@DrugBatchId", batch.DrugBatchId),
+                new SqlParameter("@DrugId", batch.DrugId),
+                new SqlParameter("@QuantityProduced", batch.QuantityProduced),
+                new SqlParameter("@ManufactureDate", batch.ManufactureDate),
+                new SqlParameter("@ExpiryDate", batch.ExpiryDate),
+                new SqlParameter("@CreatedByOrgId", batch.CreatedByOrgId)
+            );
         }
 
+        /*====================================================
+          WRITE: Add Dispatch / Ownership History
+        ====================================================*/
         public async Task AddDispatchRecordAsync(BatchOwnershipHistory history)
         {
-            await _context.BatchOwnershipHistories.AddAsync(history);
+            await _context.Database.ExecuteSqlRawAsync(
+                @"EXEC HealthCare.sp_AddBatchOwnershipHistory
+                    @DrugBatchId,
+                    @FromOrgId,
+                    @ToOrgId,
+                    @ActionType,
+                    @PerformedBy",
+                new SqlParameter("@DrugBatchId", history.DrugBatchId),
+                new SqlParameter("@FromOrgId", (object?)history.FromOrgId ?? DBNull.Value),
+                new SqlParameter("@ToOrgId", history.ToOrgId),
+                new SqlParameter("@ActionType", history.ActionType),
+                new SqlParameter("@PerformedBy", history.PerformedBy)
+            );
         }
 
+        /*====================================================
+          READ: Batch By Id
+        ====================================================*/
         public async Task<DrugBatch?> GetByBatchIdAsync(string batchId)
         {
             return await _context.DrugBatches
-                .Include(b => b.Drug)
-                .Include(b => b.CreatedByOrg)
-                .FirstOrDefaultAsync(b => b.DrugBatchId == batchId);
+                .FromSqlRaw(
+                    @"SELECT *
+                      FROM HealthCare.vw_DrugBatches_Details
+                      WHERE DrugBatchId = @DrugBatchId",
+                    new SqlParameter("@DrugBatchId", batchId))
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
         }
 
+        /*====================================================
+          READ: Batch Count By Drug
+        ====================================================*/
         public async Task<int> GetBatchCountForDrugAsync(int drugId)
         {
-            return await _context.DrugBatches.CountAsync(b => b.DrugId == drugId);
+            var result = await _context.Set<BatchCountResult>()
+                .FromSqlRaw(
+                    @"EXEC HealthCare.sp_GetBatchCountForDrug @DrugId",
+                    new SqlParameter("@DrugId", drugId))
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            return result?.BatchCount ?? 0;
         }
 
+        /*====================================================
+          READ: Drug Name Lookup
+        ====================================================*/
         public async Task<string?> GetDrugNameByIdAsync(int drugId)
         {
-             return await _context.Drugs
-                .Where(d => d.DrugId == drugId)
+            return await _context.Drugs
+                .FromSqlRaw(
+                    @"SELECT DrugId, DrugName
+                      FROM HealthCare.vw_Drugs_Lookup
+                      WHERE DrugId = @DrugId",
+                    new SqlParameter("@DrugId", drugId))
+                .AsNoTracking()
                 .Select(d => d.DrugName)
                 .FirstOrDefaultAsync();
         }
 
+        /*====================================================
+          READ: Batches By Manufacturer
+        ====================================================*/
         public async Task<IEnumerable<DrugBatch>> GetBatchesByManufacturerAsync(int orgId)
         {
             return await _context.DrugBatches
@@ -57,46 +118,84 @@ namespace DrugTracker.Repositories.Implementations
                 .ToListAsync();
         }
 
+
+
+
+
+        /*====================================================
+          READ: Incoming Dispatches
+        ====================================================*/
         public async Task<IEnumerable<DrugBatch>> GetIncomingDispatchesAsync(int toOrgId)
         {
-            // Get batches where the *latest* ownership history is directed TO this org
-            // This is a bit complex. We want batches where the current holder is this org OR it was dispatched to this org.
-            // Simplified: Find history records where ToOrgId == toOrgId.
-            // Then group by BatchId and take the latest.
-            
-            // Actually, a cleaner way for "Incoming Dispatch" depends on the status.
-            // If the application state is tracked via Ledger/History, we need to know if it's "Received" or "Pending".
-            // For now, let's return all batches where the last history event was a transfer TO this org.
-            
-            var batchIds = await _context.BatchOwnershipHistories
-                .Where(h => h.ToOrgId == toOrgId)
-                .Select(h => h.DrugBatchId)
-                .Distinct()
-                .ToListAsync();
-
-            var batches = await _context.DrugBatches
+            return await _context.DrugBatches
+                .FromSqlRaw(
+                    @"SELECT *
+                      FROM HealthCare.vw_IncomingDispatches
+                      WHERE ToOrgId = @ToOrgId",
+                    new SqlParameter("@ToOrgId", toOrgId))
                 .Include(b => b.Drug)
-                .Include(b => b.CreatedByOrg)
-                .Where(b => batchIds.Contains(b.DrugBatchId))
+                .AsNoTracking()
                 .ToListAsync();
-                
-            return batches;
         }
 
+        /*====================================================
+          READ: Ownership History
+        ====================================================*/
         public async Task<IEnumerable<BatchOwnershipHistory>> GetOwnershipHistoryAsync(string batchId)
         {
             return await _context.BatchOwnershipHistories
-                .Include(h => h.User)
-                .Include(h => h.ToOrg)
-                .Where(h => h.DrugBatchId == batchId)
-                .OrderBy(h => h.ActionTime)
+                .FromSqlRaw(
+                    @"SELECT *
+                      FROM HealthCare.vw_BatchOwnershipHistory
+                      WHERE DrugBatchId = @DrugBatchId
+                      ORDER BY ActionTime",
+                    new SqlParameter("@DrugBatchId", batchId))
+                .AsNoTracking()
                 .ToListAsync();
         }
 
+        /*====================================================
+          WRITE: Update Batch
+        ====================================================*/
         public async Task UpdateAsync(DrugBatch batch)
         {
-             _context.DrugBatches.Update(batch);
-             await Task.CompletedTask;
+            await _context.Database.ExecuteSqlRawAsync(
+                @"EXEC HealthCare.sp_UpdateDrugBatch
+                    @DrugBatchId,
+                    @QuantityProduced,
+                    @ExpiryDate",
+                new SqlParameter("@DrugBatchId", batch.DrugBatchId),
+                new SqlParameter("@QuantityProduced", batch.QuantityProduced),
+                new SqlParameter("@ExpiryDate", batch.ExpiryDate)
+            );
         }
+            /*====================================================
+          READ: Batches for Distributor (History + Current)
+        ====================================================*/
+        public async Task<IEnumerable<DrugBatch>> GetBatchesForDistributorAsync(int distId)
+        {
+             // Get BatchIds where Distributor was involved (either as Receiver or Sender)
+             var batchIds = await _context.BatchOwnershipHistories
+                 .Where(h => h.ToOrgId == distId || h.FromOrgId == distId)
+                 .Select(h => h.DrugBatchId)
+                 .Distinct()
+                 .ToListAsync();
+            
+             // Fetch Batches
+             return await _context.DrugBatches
+                 .Include(b => b.Drug)
+                 .Where(b => batchIds.Contains(b.DrugBatchId))
+                 .OrderByDescending(b => b.CreatedAt)
+                 .AsNoTracking()
+                 .ToListAsync();
+        }
+    }
+
+    /*====================================================
+      Helper DTO for COUNT SP
+    ====================================================*/
+    public class BatchCountResult
+    {
+        public int BatchCount { get; set; }
     }
 }

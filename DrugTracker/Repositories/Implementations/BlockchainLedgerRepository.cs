@@ -2,8 +2,8 @@ using DrugTracker.Data;
 using DrugTracker.Models;
 using DrugTracker.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace DrugTracker.Repositories.Implementations
@@ -17,31 +17,50 @@ namespace DrugTracker.Repositories.Implementations
             _context = context;
         }
 
+        /* WRITE (APPEND ONLY) */
         public async Task AddEntryAsync(BlockchainLedger entry)
         {
-            await _context.BlockchainLedgers.AddAsync(entry);
+            await _context.Database.ExecuteSqlRawAsync(
+                @"EXEC HealthCare.sp_AddBlockchainLedgerEntry
+                    @DrugBatchId,
+                    @Action,
+                    @FromOrgId,
+                    @ToOrgId,
+                    @Quantity",
+                new SqlParameter("@DrugBatchId", entry.DrugBatchId),
+                new SqlParameter("@Action", entry.Action),
+                new SqlParameter("@FromOrgId", (object?)entry.FromOrgId ?? DBNull.Value),
+                new SqlParameter("@ToOrgId", (object?)entry.ToOrgId ?? DBNull.Value),
+                new SqlParameter("@Quantity", (object?)entry.Quantity ?? DBNull.Value)
+            );
         }
 
+        /* READ */
         public async Task<IEnumerable<BlockchainLedger>> GetLedgerByBatchIdAsync(string batchId)
         {
             return await _context.BlockchainLedgers
-                .Where(l => l.DrugBatchId == batchId)
-                .OrderBy(l => l.ActionTime) // Enforce chronological order
+                .FromSqlRaw(
+                    @"SELECT *
+                      FROM HealthCare.vw_BlockchainLedger_ByBatch
+                      WHERE DrugBatchId = @DrugBatchId
+                      ORDER BY ActionTime",
+                    new SqlParameter("@DrugBatchId", batchId))
+                .AsNoTracking()
                 .ToListAsync();
         }
 
+        /* VERIFY */
         public async Task<bool> VerifyLedgerAsync()
         {
-            // Execute the system stored procedure to verify the ledger
-            // Note: This requires the DB to be actually set up as a Ledger DB.
-            try 
+            try
             {
-                await _context.Database.ExecuteSqlRawAsync("EXEC sys.sp_verify_database_ledger");
+                await _context.Database.ExecuteSqlRawAsync(
+                    "EXEC sys.sp_verify_database_ledger"
+                );
                 return true;
             }
             catch
             {
-                // In case of error (tampering detected or not supported), return false
                 return false;
             }
         }

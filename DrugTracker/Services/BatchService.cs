@@ -64,10 +64,8 @@ namespace DrugTracker.Services
 
                 string prefix = drugName.Length >= 3 ? drugName.Substring(0, 3).ToUpper() : drugName.ToUpper();
                 
-                // Get count of batches for this drug to determine suffix
-                // We need a method `GetBatchCountForDrugAsync`.
-                int count = await _unitOfWork.DrugBatches.GetBatchCountForDrugAsync(drugId);
-                string batchId = $"{prefix}{(count + 1):D3}";
+                // New Logic: PREFIX + "-" + Timestamp (yyyyMMddHHmmss)
+                string batchId = $"{prefix}-{DateTime.Now:yyyyMMddHHmmss}";
 
                 var batch = new DrugBatch
                 {

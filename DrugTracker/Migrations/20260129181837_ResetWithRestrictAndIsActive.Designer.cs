@@ -4,6 +4,7 @@ using DrugTracker.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DrugTracker.Migrations
 {
     [DbContext(typeof(DrugTrackerDbContext))]
-    partial class DrugTrackerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260129181837_ResetWithRestrictAndIsActive")]
+    partial class ResetWithRestrictAndIsActive
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -336,7 +339,7 @@ namespace DrugTracker.Migrations
                     b.HasOne("DrugTracker.Models.DrugBatch", "DrugBatch")
                         .WithMany()
                         .HasForeignKey("DrugBatchId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("DrugTracker.Models.Organization", "FromOrg")
@@ -370,13 +373,13 @@ namespace DrugTracker.Migrations
                     b.HasOne("DrugTracker.Models.Organization", "CreatedByOrg")
                         .WithMany()
                         .HasForeignKey("CreatedByOrgId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("DrugTracker.Models.Drug", "Drug")
                         .WithMany()
                         .HasForeignKey("DrugId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("CreatedByOrg");
@@ -395,7 +398,7 @@ namespace DrugTracker.Migrations
                     b.HasOne("DrugTracker.Models.Organization", "PharmacyOrg")
                         .WithMany()
                         .HasForeignKey("PharmacyOrgId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("DrugBatch");

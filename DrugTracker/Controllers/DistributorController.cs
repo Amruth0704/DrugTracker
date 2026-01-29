@@ -26,7 +26,7 @@ namespace DrugTracker.Controllers
         public async Task<IActionResult> Dashboard()
         {
             int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
-            var batches = await _batchRepository.GetIncomingDispatchesAsync(orgId);
+            var batches = await _batchRepository.GetBatchesForDistributorAsync(orgId);
             
             // We need list of Pharmacies for the dispatch modal
             ViewBag.Pharmacies = await _context.Organizations.Where(o => o.OrgType == "PHARMACY").ToListAsync();

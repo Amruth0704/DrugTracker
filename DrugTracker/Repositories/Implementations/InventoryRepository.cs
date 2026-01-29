@@ -2,8 +2,8 @@ using DrugTracker.Data;
 using DrugTracker.Models;
 using DrugTracker.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace DrugTracker.Repositories.Implementations
@@ -17,29 +17,20 @@ namespace DrugTracker.Repositories.Implementations
             _context = context;
         }
 
+        /* WRITE */
         public async Task AddOrUpdateInventoryAsync(Inventory inventory)
         {
-            // We only need to check by BatchId and PharmacyId since Batch implies Drug
-            var existing = await _context.Inventories
-                .FirstOrDefaultAsync(i => i.PharmacyOrgId == inventory.PharmacyOrgId && i.DrugBatchId == inventory.DrugBatchId);
-            
-            if (existing != null)
-            {
-                // We are updating the state, so we overwrite the value.
-                // The caller (Service) is responsible for calculation (e.g. subtracting sold qty or setting initial qty).
-                
-                // Special check: If we are calling this with a *different* instance but same ID, we update.
-                // If it's the *same* tracked instance (from EF), this assignment might be redundant but safe.
-                // However, the bug was using += which was definitely wrong for "Update State".
-                
-                existing.AvailableQty = inventory.AvailableQty; 
-                existing.LastUpdated = System.DateTime.Now;
-                _context.Inventories.Update(existing);
-            }
-            else
-            {
-                await _context.Inventories.AddAsync(inventory);
-            }
+            await _context.Database.ExecuteSqlRawAsync(
+                @"EXEC HealthCare.sp_AddOrUpdateInventory
+                    @DrugBatchId,
+                    @PharmacyOrgId,
+                    @AvailableQty,
+                    @ReceivedQty",
+                new SqlParameter("@DrugBatchId", inventory.DrugBatchId),
+                new SqlParameter("@PharmacyOrgId", inventory.PharmacyOrgId),
+                new SqlParameter("@AvailableQty", inventory.AvailableQty),
+                new SqlParameter("@ReceivedQty", inventory.ReceivedQty)
+            );
         }
 
         public async Task<Inventory?> GetInventoryItemAsync(int pharmacyId, int drugId, string batchId)
@@ -48,7 +39,9 @@ namespace DrugTracker.Repositories.Implementations
             return await _context.Inventories
                 .Include(i => i.DrugBatch)
                 .ThenInclude(b => b.Drug)
-                .FirstOrDefaultAsync(i => i.PharmacyOrgId == pharmacyId && i.DrugBatchId == batchId);
+                .FirstOrDefaultAsync(i =>
+                    i.PharmacyOrgId == pharmacyId &&
+                    i.DrugBatchId == batchId);
         }
 
         public async Task<IEnumerable<Inventory>> GetPharmacyInventoryAsync(int pharmacyId)
@@ -59,5 +52,6 @@ namespace DrugTracker.Repositories.Implementations
                 .Where(i => i.PharmacyOrgId == pharmacyId && i.AvailableQty > 0)
                 .ToListAsync();
         }
+
     }
 }

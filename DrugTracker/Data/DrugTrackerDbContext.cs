@@ -49,6 +49,10 @@ namespace DrugTracker.Data
             modelBuilder.Entity<Drug>()
                 .Property(d => d.CreatedAt)
                 .HasDefaultValueSql("SYSDATETIME()");
+
+            modelBuilder.Entity<Drug>()
+                .Property(d => d.IsActive)
+                .HasDefaultValue(true);
             
             modelBuilder.Entity<Drug>()
                 .HasIndex(d => d.DrugCode)
@@ -63,7 +67,13 @@ namespace DrugTracker.Data
                 .HasOne(d => d.CreatedByOrg)
                 .WithMany()
                 .HasForeignKey(d => d.CreatedByOrgId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DrugBatch>()
+                .HasOne(d => d.Drug)
+                .WithMany()
+                .HasForeignKey(d => d.DrugId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // BatchOwnershipHistory
             modelBuilder.Entity<BatchOwnershipHistory>()
@@ -82,6 +92,18 @@ namespace DrugTracker.Data
                 .HasForeignKey(b => b.ToOrgId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<BatchOwnershipHistory>()
+                .HasOne(b => b.FromOrg)
+                .WithMany()
+                .HasForeignKey(b => b.FromOrgId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<BatchOwnershipHistory>()
+                .HasOne(b => b.DrugBatch)
+                .WithMany()
+                .HasForeignKey(b => b.DrugBatchId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Inventory
             modelBuilder.Entity<Inventory>()
                 .Property(i => i.LastUpdated)
@@ -91,6 +113,12 @@ namespace DrugTracker.Data
                 .HasOne(i => i.PharmacyOrg)
                 .WithMany()
                 .HasForeignKey(i => i.PharmacyOrgId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Inventory>()
+                .HasOne(i => i.DrugBatch)
+                .WithMany()
+                .HasForeignKey(i => i.DrugBatchId)
                 .OnDelete(DeleteBehavior.Restrict);
             
             // BlockchainLedger

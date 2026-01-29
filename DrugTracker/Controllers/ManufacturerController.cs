@@ -53,6 +53,7 @@ namespace DrugTracker.Controllers
                 var vm = new BatchViewModel
                 {
                     Batch = b,
+                   
                     LatestAction = last?.ActionType ?? "N/A",
                     IsActionEnabled = (last?.ActionType == "CREATED" || last?.ActionType == "BATCH_CREATED"),
                     TransferredToOrgName = transferredTo
