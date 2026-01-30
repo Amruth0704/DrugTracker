@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddDbContext<DrugTrackerDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("HCAminiEHR")));

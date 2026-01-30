@@ -214,8 +214,9 @@ namespace DrugTracker.Controllers
                         // Logic: Delete old batch -> Create new batch (to generate new ID)
                         
                         // 1. Delete Old
-                        _context.DrugBatches.Remove(batch);
-                        await _context.SaveChangesAsync(); // Commit delete to free up constraints if any, or just to proceed.
+                        string ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "::1";
+                        await _batchRepository.DeleteAsync(batch.DrugBatchId, userId, orgId, "Manufacturer", ipAddress);
+                         // await _context.SaveChangesAsync(); // Not needed for Repo call, and might be redundant if Repo executes immediately.
 
                         // 2. Create New
                         // Recalculate Expiry to ensure consistency (3 Years rule from CreateBatch)
@@ -238,11 +239,15 @@ namespace DrugTracker.Controllers
                              batch.ExpiryDate = model.ManufactureDate.AddYears(3);
                         }
 
+
                         // BLOCKCHAIN RECORD
                         await _blockchainService.RecordActionAsync(batch.DrugBatchId, "BATCH_EDITED", orgId, null, batch.QuantityProduced);
 
-                        _context.Update(batch);
-                        await _context.SaveChangesAsync();
+                        string ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "::1";
+                        await _batchRepository.UpdateAsync(batch, userId, orgId, "Manufacturer", ipAddress);
+                        
+                        // We don't need _context.SaveChangesAsync() if we use ExecuteSqlRaw, but we might 'Detach' if needed to avoid conflicts if logic continues.
+                        // For redirect return, it is fine.
                         TempData["Message"] = "Batch updated successfully.";
                     }
 
@@ -272,6 +277,7 @@ namespace DrugTracker.Controllers
             try
             {
                 int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
+                int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
                 var history = await _batchRepository.GetOwnershipHistoryAsync(batchId);
                 var last = history.LastOrDefault();
 
@@ -296,8 +302,8 @@ namespace DrugTracker.Controllers
                 // Checks Models/BlockchainLedger.cs -> DrugBatchId is string. No FK. Good.
                 await _blockchainService.RecordActionAsync(batchId, "BATCH_DELETED", orgId, null, 0);
 
-                _context.DrugBatches.Remove(batch);
-                await _context.SaveChangesAsync();
+                string ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "::1";
+                await _batchRepository.DeleteAsync(batchId, userId, orgId, "Manufacturer", ipAddress);
                 
                 TempData["Message"] = "Batch deleted successfully.";
             }

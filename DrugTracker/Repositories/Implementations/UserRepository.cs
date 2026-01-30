@@ -22,8 +22,13 @@ namespace DrugTracker.Repositories.Implementations
         public async Task<Organization?> GetOrganizationByIdAsync(int orgId)
         {
             return await _context.Organizations
+                .FromSqlRaw(
+                    @"SELECT *
+                      FROM HealthCare.vw_Organizations
+                      WHERE OrgId = @OrgId",
+                    new SqlParameter("@OrgId", orgId))
                 .AsNoTracking()
-                .FirstOrDefaultAsync(o => o.OrgId == orgId);
+                .FirstOrDefaultAsync();
         }
 
         /*===============================================
@@ -32,9 +37,13 @@ namespace DrugTracker.Repositories.Implementations
         public async Task<User?> GetUserByUsernameAsync(string username)
         {
             return await _context.Users
-                .Include(u => u.Organization)
+                .FromSqlRaw(
+                    @"SELECT *
+                      FROM HealthCare.vw_UsersWithOrganization
+                      WHERE UserName = @UserName",
+                    new SqlParameter("@UserName", username))
                 .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.UserName == username);
+                .FirstOrDefaultAsync();
         }
 
         /*===============================================

@@ -18,18 +18,26 @@ namespace DrugTracker.Repositories.Implementations
         }
 
         /* WRITE */
-        public async Task AddOrUpdateInventoryAsync(Inventory inventory)
+        public async Task AddOrUpdateInventoryAsync(Inventory inventory, int userId, int orgId, string role, string ipAddress)
         {
             await _context.Database.ExecuteSqlRawAsync(
                 @"EXEC HealthCare.sp_AddOrUpdateInventory
                     @DrugBatchId,
                     @PharmacyOrgId,
                     @AvailableQty,
-                    @ReceivedQty",
+                    @ReceivedQty,
+                    @UserId,
+                    @OrgId,
+                    @Role,
+                    @IPAddress",
                 new SqlParameter("@DrugBatchId", inventory.DrugBatchId),
                 new SqlParameter("@PharmacyOrgId", inventory.PharmacyOrgId),
                 new SqlParameter("@AvailableQty", inventory.AvailableQty),
-                new SqlParameter("@ReceivedQty", inventory.ReceivedQty)
+                new SqlParameter("@ReceivedQty", inventory.ReceivedQty),
+                new SqlParameter("@UserId", userId),
+                new SqlParameter("@OrgId", orgId),
+                new SqlParameter("@Role", role),
+                new SqlParameter("@IPAddress", ipAddress)
             );
         }
 

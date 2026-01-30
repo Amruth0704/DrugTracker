@@ -4,31 +4,49 @@
     ViewData["Title"] = "Login";
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-4">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white text-center">
-                <h3>Login</h3>
-            </div>
-            <div class="card-body">
+<div class="row justify-content-center mt-5 fade-in">
+    <div class="col-md-5 col-lg-4">
+        <div class="text-center mb-4">
+            <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3rem;"></i>
+            <h2 class="fw-bold mt-2">Welcome Back</h2>
+            <p class="text-muted">Secure access to the Drug Tracker Network</p>
+        </div>
+        
+        <div class="card-modern shadow-lg border-0 p-4">
+            <div class="card-body p-2">
                 <form asp-action="Login">
                     <input type="hidden" asp-for="ExpectedRole" />
-                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                    <div class="form-group mb-3">
-                        <label asp-for="Username" class="control-label"></label>
-                        <input asp-for="Username" class="form-control" />
-                        <span asp-validation-for="Username" class="text-danger"></span>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm rounded-3 mb-3"></div>
+                    
+                    <div class="form-group-modern">
+                        <label asp-for="Username" class="form-label text-muted small text-uppercase fw-bold">Username</label>
+                        <div class="input-group">
+                             <span class="input-group-text bg-light border-end-0 border"><i class="bi bi-person text-primary"></i></span>
+                             <input asp-for="Username" class="form-control-modern border-start-0" placeholder="Enter your username" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" />
+                        </div>
+                        <span asp-validation-for="Username" class="text-danger small"></span>
                     </div>
-                    <div class="form-group mb-3">
-                        <label asp-for="Password" class="control-label"></label>
-                        <input asp-for="Password" class="form-control" />
-                        <span asp-validation-for="Password" class="text-danger"></span>
+                    
+                    <div class="form-group-modern">
+                        <label asp-for="Password" class="form-label text-muted small text-uppercase fw-bold">Password</label>
+                         <div class="input-group">
+                             <span class="input-group-text bg-light border-end-0 border"><i class="bi bi-key text-primary"></i></span>
+                             <input asp-for="Password" type="password" class="form-control-modern border-start-0" placeholder="••••••••" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" />
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
                     </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Log In</button>
+                    
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary-modern py-2 fs-5">
+                            Log In <i class="bi bi-box-arrow-in-right ms-2"></i>
+                        </button>
                     </div>
                 </form>
             </div>
+        </div>
+        
+        <div class="text-center mt-4 text-muted small">
+            &copy; 2026 Drug Tracker System. All rights reserved.
         </div>
     </div>
 </div>

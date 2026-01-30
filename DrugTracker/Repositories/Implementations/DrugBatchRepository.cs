@@ -21,7 +21,7 @@ namespace DrugTracker.Repositories.Implementations
         /*====================================================
           WRITE: Add Drug Batch
         ====================================================*/
-        public async Task AddAsync(DrugBatch batch)
+        public async Task AddAsync(DrugBatch batch, int userId, int orgId, string role, string ipAddress)
         {
             await _context.Database.ExecuteSqlRawAsync(
                 @"EXEC HealthCare.sp_AddDrugBatch
@@ -30,20 +30,28 @@ namespace DrugTracker.Repositories.Implementations
                     @QuantityProduced,
                     @ManufactureDate,
                     @ExpiryDate,
-                    @CreatedByOrgId",
+                    @CreatedByOrgId,
+                    @UserId,
+                    @OrgId,
+                    @Role,
+                    @IPAddress",
                 new SqlParameter("@DrugBatchId", batch.DrugBatchId),
                 new SqlParameter("@DrugId", batch.DrugId),
                 new SqlParameter("@QuantityProduced", batch.QuantityProduced),
                 new SqlParameter("@ManufactureDate", batch.ManufactureDate),
                 new SqlParameter("@ExpiryDate", batch.ExpiryDate),
-                new SqlParameter("@CreatedByOrgId", batch.CreatedByOrgId)
+                new SqlParameter("@CreatedByOrgId", batch.CreatedByOrgId),
+                new SqlParameter("@UserId", userId),
+                new SqlParameter("@OrgId", orgId),
+                new SqlParameter("@Role", role),
+                new SqlParameter("@IPAddress", ipAddress)
             );
         }
 
         /*====================================================
           WRITE: Add Dispatch / Ownership History
         ====================================================*/
-        public async Task AddDispatchRecordAsync(BatchOwnershipHistory history)
+        public async Task AddDispatchRecordAsync(BatchOwnershipHistory history, int userId, int orgId, string role, string ipAddress)
         {
             await _context.Database.ExecuteSqlRawAsync(
                 @"EXEC HealthCare.sp_AddBatchOwnershipHistory
@@ -51,12 +59,20 @@ namespace DrugTracker.Repositories.Implementations
                     @FromOrgId,
                     @ToOrgId,
                     @ActionType,
-                    @PerformedBy",
+                    @PerformedBy,
+                    @UserId,
+                    @OrgId,
+                    @Role,
+                    @IPAddress",
                 new SqlParameter("@DrugBatchId", history.DrugBatchId),
                 new SqlParameter("@FromOrgId", (object?)history.FromOrgId ?? DBNull.Value),
                 new SqlParameter("@ToOrgId", history.ToOrgId),
                 new SqlParameter("@ActionType", history.ActionType),
-                new SqlParameter("@PerformedBy", history.PerformedBy)
+                new SqlParameter("@PerformedBy", history.PerformedBy),
+                new SqlParameter("@UserId", userId),
+                new SqlParameter("@OrgId", orgId),
+                new SqlParameter("@Role", role),
+                new SqlParameter("@IPAddress", ipAddress)
             );
         }
 
@@ -66,11 +82,9 @@ namespace DrugTracker.Repositories.Implementations
         public async Task<DrugBatch?> GetByBatchIdAsync(string batchId)
         {
             return await _context.DrugBatches
-                .FromSqlRaw(
-                    @"SELECT *
-                      FROM HealthCare.vw_DrugBatches_Details
-                      WHERE DrugBatchId = @DrugBatchId",
-                    new SqlParameter("@DrugBatchId", batchId))
+                .Include(b => b.Drug)
+                .Include(b => b.CreatedByOrg)
+                .Where(b => b.DrugBatchId == batchId)
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
         }
@@ -157,16 +171,26 @@ namespace DrugTracker.Repositories.Implementations
         /*====================================================
           WRITE: Update Batch
         ====================================================*/
-        public async Task UpdateAsync(DrugBatch batch)
+        public async Task UpdateAsync(DrugBatch batch, int userId, int orgId, string role, string ipAddress)
         {
             await _context.Database.ExecuteSqlRawAsync(
                 @"EXEC HealthCare.sp_UpdateDrugBatch
                     @DrugBatchId,
                     @QuantityProduced,
-                    @ExpiryDate",
+                    @ManufactureDate,
+                    @ExpiryDate,
+                    @UserId,
+                    @OrgId,
+                    @Role,
+                    @IPAddress",
                 new SqlParameter("@DrugBatchId", batch.DrugBatchId),
                 new SqlParameter("@QuantityProduced", batch.QuantityProduced),
-                new SqlParameter("@ExpiryDate", batch.ExpiryDate)
+                new SqlParameter("@ManufactureDate", batch.ManufactureDate),
+                new SqlParameter("@ExpiryDate", batch.ExpiryDate),
+                new SqlParameter("@UserId", userId),
+                new SqlParameter("@OrgId", orgId),
+                new SqlParameter("@Role", role),
+                new SqlParameter("@IPAddress", ipAddress)
             );
         }
             /*====================================================
@@ -188,6 +212,26 @@ namespace DrugTracker.Repositories.Implementations
                  .OrderByDescending(b => b.CreatedAt)
                  .AsNoTracking()
                  .ToListAsync();
+        }
+
+        /*====================================================
+          WRITE: Delete Drug Batch
+        ====================================================*/
+        public async Task DeleteAsync(string batchId, int userId, int orgId, string role, string ipAddress)
+        {
+            await _context.Database.ExecuteSqlRawAsync(
+                @"EXEC HealthCare.sp_DeleteDrugBatch
+                    @DrugBatchId,
+                    @UserId,
+                    @OrgId,
+                    @Role,
+                    @IPAddress",
+                new SqlParameter("@DrugBatchId", batchId),
+                new SqlParameter("@UserId", userId),
+                new SqlParameter("@OrgId", orgId),
+                new SqlParameter("@Role", role),
+                new SqlParameter("@IPAddress", ipAddress)
+            );
         }
     }
 

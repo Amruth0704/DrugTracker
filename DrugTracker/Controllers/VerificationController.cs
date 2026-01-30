@@ -162,5 +162,56 @@ namespace DrugTracker.Controllers
             
             return View("Details", batch);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> SupplyChain(string batchId)
+        {
+            if (string.IsNullOrEmpty(batchId)) return RedirectToAction("Index");
+
+            var batch = await _batchRepository.GetByBatchIdAsync(batchId);
+            var ledger = await _ledgerRepository.GetLedgerByBatchIdAsync(batchId);
+
+            // Reconstruct Batch if missing locally but exists in ledger
+            if (batch == null && ledger != null && ledger.Any())
+            {
+                var createdEntry = ledger.OrderBy(l => l.ActionTime).FirstOrDefault(l => l.Action == "BATCH_CREATED" || l.Action == "CREATED");
+                if (createdEntry != null)
+                {
+                    batch = new DrugBatch
+                    {
+                        DrugBatchId = batchId,
+                        QuantityProduced = createdEntry.Quantity ?? 0,
+                        CreatedByOrgId = createdEntry.FromOrgId ?? 0,
+                        ManufactureDate = createdEntry.ActionTime,
+                        ExpiryDate = createdEntry.ActionTime.AddYears(3)
+                    };
+                }
+            }
+
+            if (batch == null)
+            {
+                ViewBag.Error = "Batch not found.";
+                return View("Index");
+            }
+
+            var history = await _batchRepository.GetOwnershipHistoryAsync(batchId);
+
+            // Reconstruct history from ledger if missing locally
+            if ((history == null || !history.Any()) && ledger != null)
+            {
+                history = ledger.Select(l => new BatchOwnershipHistory
+                {
+                    DrugBatchId = l.DrugBatchId,
+                    ActionType = l.Action == "BATCH_CREATED" ? "CREATED" : l.Action,
+                    ActionTime = l.ActionTime,
+                    FromOrgId = l.FromOrgId,
+                    ToOrgId = l.ToOrgId ?? (l.Action == "BATCH_CREATED" ? (l.FromOrgId ?? 0) : 0),
+                    PerformedBy = 0
+                }).OrderBy(h => h.ActionTime).ToList();
+            }
+
+            ViewBag.History = history;
+            return View(batch);
+        }
     }
 }

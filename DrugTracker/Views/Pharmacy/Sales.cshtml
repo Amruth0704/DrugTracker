@@ -35,7 +35,11 @@
                         @foreach (var item in Model)
                         {
                             <tr>
-                                <td class="fw-bold">@item.DrugBatchId</td>
+                                <td class="fw-bold">
+                                    <a asp-controller="Verification" asp-action="SupplyChain" asp-route-batchId="@item.DrugBatchId" class="text-decoration-none">
+                                        @item.DrugBatchId
+                                    </a>
+                                </td>
                                 <td>@item.DrugName</td>
                                 <td>
                                     <span class="badge bg-success">@item.AvailableQty</span>

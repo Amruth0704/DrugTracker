@@ -117,10 +117,19 @@ CREATE OR ALTER PROCEDURE [HealthCare].[sp_AddDrugBatch]
     @QuantityProduced INT,
     @ManufactureDate DATETIME2(7),
     @ExpiryDate DATETIME2(7),
-    @CreatedByOrgId INT
+    @CreatedByOrgId INT,
+    
+    -- Audit Params
+    @UserId INT,
+    @OrgId INT,          -- The Org performing the action (should match CreatedByOrgId usually)
+    @Role NVARCHAR(50),
+    @IPAddress NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    -- 1. Set Session Context
+    EXEC HealthCare.sp_SetUserSessionContext @UserId, @OrgId, @Role, @IPAddress;
 
     INSERT INTO [HealthCare].[DrugBatches]
     (
@@ -149,10 +158,18 @@ CREATE OR ALTER PROCEDURE [HealthCare].[sp_AddBatchOwnershipHistory]
     @FromOrgId INT,
     @ToOrgId INT,
     @ActionType NVARCHAR(30),
-    @PerformedBy INT
+    @PerformedBy INT, -- This is the user ID, redundant if in AuditParams, but kept for table schema
+
+    -- Audit Params
+    @UserId INT,
+    @OrgId INT,
+    @Role NVARCHAR(50),
+    @IPAddress NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    EXEC HealthCare.sp_SetUserSessionContext @UserId, @OrgId, @Role, @IPAddress;
 
     INSERT INTO [HealthCare].[BatchOwnershipHistories]
     (
@@ -216,13 +233,21 @@ GO
 
 /* Update Drug Batch */
 CREATE OR ALTER PROCEDURE [HealthCare].[sp_UpdateDrugBatch]
-    @DrugBatchId NVARCHAR(100),      -- PK (used only in WHERE)
+    @DrugBatchId NVARCHAR(100),
     @QuantityProduced INT,
-    @ManufactureDate DATETIME2(7),   -- now updatable
-    @ExpiryDate DATETIME2(7)
+    @ManufactureDate DATETIME2(7),
+    @ExpiryDate DATETIME2(7),
+
+    -- Audit Params
+    @UserId INT,
+    @OrgId INT,
+    @Role NVARCHAR(50),
+    @IPAddress NVARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    EXEC HealthCare.sp_SetUserSessionContext @UserId, @OrgId, @Role, @IPAddress;
 
     UPDATE [HealthCare].[DrugBatches]
     SET

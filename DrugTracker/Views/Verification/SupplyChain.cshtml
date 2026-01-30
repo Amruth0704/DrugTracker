@@ -1,0 +1,100 @@
+@model DrugTracker.Models.DrugBatch
+@using DrugTracker.Models
+
+@{
+    ViewData["Title"] = "Supply Chain Journey";
+    var history = ViewBag.History as IEnumerable<BatchOwnershipHistory>;
+}
+
+<div class="container py-5 fade-in">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-diagram-3-fill text-primary me-2"></i> Supply Chain Journey
+            </h2>
+            <p class="text-muted mb-0">Tracking Batch: <span class="fw-bold text-dark">@Model.DrugBatchId</span></p>
+        </div>
+    </div>
+
+    <!-- Product Details -->
+    <div class="card-modern mb-5">
+        <div class="card-header-modern">
+            <h5 class="mb-0">Product Details</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-3 col-6">
+                    <label class="text-muted small text-uppercase fw-bold">Drug Name</label>
+                    <p class="fs-5 fw-bold text-primary mb-0">@Model.Drug?.DrugName</p>
+                </div>
+                <div class="col-md-3 col-6">
+                    <label class="text-muted small text-uppercase fw-bold">Manufacturer</label>
+                    <p class="fs-5 mb-0">@Model.CreatedByOrg?.OrgName</p>
+                </div>
+                <div class="col-md-3 col-6">
+                    <label class="text-muted small text-uppercase fw-bold">Manufacture Date</label>
+                    <p class="fs-5 mb-0">@Model.ManufactureDate.ToShortDateString()</p>
+                </div>
+                <div class="col-md-3 col-6">
+                    <label class="text-muted small text-uppercase fw-bold">Current Status</label>
+                    <p class="fs-5 mb-0">
+                        @if(history != null && history.Any()) {
+                            <span class="badge badge-info">@history.Last().ActionType</span>
+                        } else {
+                            <span class="badge badge-secondary">Unknown</span>
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h4 class="fw-bold mb-4 text-center">Journey Timeline</h4>
+            <div class="timeline-container">
+                @if(history != null) {
+                    foreach(var item in history) {
+                         <div class="timeline-item position-relative pb-5 ps-5 border-start border-3 border-light">
+                            <!-- Dot -->
+                            <div class="position-absolute start-0 top-0 translate-middle rounded-circle bg-primary d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
+                                <i class="bi bi-check-lg text-white"></i>
+                            </div>
+                            
+                            <!-- Card -->
+                            <div class="card-modern shadow-sm border-0">
+                                <div class="card-body p-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h5 class="fw-bold mb-0 text-primary">@item.ActionType</h5>
+                                        <span class="text-muted small">@item.ActionTime.ToString("MMM dd, yyyy hh:mm tt")</span>
+                                    </div>
+                                    <p class="mb-0 text-muted">
+                                        @if(item.ActionType == "CREATED" || item.ActionType == "BATCH_CREATED") {
+                                            <span>Manufactured by <strong>@Model.CreatedByOrg?.OrgName</strong></span>
+                                        } else if (item.ToOrg != null) {
+                                            <span>Transferred to <strong>@item.ToOrg.OrgName</strong> (@item.ToOrg.OrgType)</span>
+                                            if (item.FromOrg != null) {
+                                                <br/>
+                                                <small>From: @item.FromOrg.OrgName</small>
+                                            }
+                                        } else {
+                                            <span>Action recorded on network</span>
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-5">
+        <a href="javascript:history.back()" class="btn btn-secondary-modern">
+            <i class="bi bi-arrow-left me-2"></i> Back
+        </a>
+    </div>
+</div>

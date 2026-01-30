@@ -5,109 +5,161 @@
     ViewData["Title"] = "Batch Details";
     var history = ViewBag.History as IEnumerable<BatchOwnershipHistory>;
     var ledger = ViewBag.Ledger as IEnumerable<BlockchainLedger>;
-
+    bool isTampered = ViewBag.IsTampered == true;
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-shield-check"></i> Batch Verification: @Model.DrugBatchId</h2>
-        @if (ViewBag.IsTampered == true)
+<div class="container py-5 fade-in">
+    <!-- Header / Status -->
+    <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-shield-check text-primary me-2"></i> Verification Report
+            </h2>
+            <p class="text-muted mb-0">Batch ID: <span class="fw-bold text-dark">@Model.DrugBatchId</span></p>
+        </div>
+
+        @if (isTampered)
         {
-            <div class="alert alert-danger w-100 mt-3 shadow">
-                <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> TAMPERING DETECTED</h4>
-                <p>The system has detected inconsistencies between the current data and the immutable Blockchain Ledger.</p>
-                <hr>
-                <ul class="mb-0">
-                    @if (ViewBag.ValidationErrors != null)
-                    {
-                        foreach (string error in ViewBag.ValidationErrors)
-                        {
-                            <li><strong>@error</strong></li>
-                        }
-                    }
-                </ul>
+            <div class="card bg-danger text-white border-0 shadow-sm px-4 py-3">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+                    <div>
+                        <h5 class="mb-0 fw-bold">TAMPERING DETECTED</h5>
+                        <small>Blockchain mismatch found</small>
+                    </div>
+                </div>
             </div>
         }
         else
         {
-            <span class="badge bg-success fs-5">Blockchain Verified <i class="bi bi-check-circle-fill"></i></span>
+            <div class="card bg-success text-white border-0 shadow-sm px-4 py-3">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill fs-3 me-3"></i>
+                    <div>
+                        <h5 class="mb-0 fw-bold">AUTHENTIC</h5>
+                        <small>Verified on Blockchain</small>
+                    </div>
+                </div>
+            </div>
         }
     </div>
 
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-3"><strong>Drug Name:</strong> <br/> @Model.Drug?.DrugName</div>
-                <div class="col-md-3"><strong>Manufactured By:</strong> <br/> @Model.CreatedByOrg?.OrgName</div>
-                <div class="col-md-3"><strong>Mfg Date:</strong> <br/> @Model.ManufactureDate.ToShortDateString()</div>
-                <div class="col-md-3"><strong>Expiry Date:</strong> <br/> @Model.ExpiryDate.ToShortDateString()</div>
+    @if (isTampered && ViewBag.ValidationErrors != null)
+    {
+        <div class="alert alert-danger shadow-sm rounded-3 mb-5">
+            <h5 class="alert-heading fw-bold"><i class="bi bi-x-circle me-2"></i>Verification Issues:</h5>
+            <ul class="mb-0 mt-2">
+                @foreach (string error in ViewBag.ValidationErrors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <!-- Product Details -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-12">
+            <div class="card-modern h-100">
+                <div class="card-header-modern">
+                    <h5 class="mb-0">Product Information</h5>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-3 col-6">
+                        <label class="text-muted small text-uppercase fw-bold">Drug Name</label>
+                        <p class="fs-5 fw-bold text-primary mb-0">@Model.Drug?.DrugName</p>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="text-muted small text-uppercase fw-bold">Manufacturer</label>
+                        <p class="fs-5 mb-0">@Model.CreatedByOrg?.OrgName</p>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="text-muted small text-uppercase fw-bold">Manufacture Date</label>
+                        <p class="fs-5 mb-0">@Model.ManufactureDate.ToShortDateString()</p>
+                    </div>
+                    <div class="col-md-3 col-6">
+                         <label class="text-muted small text-uppercase fw-bold">Expiry Date</label>
+                        <p class="fs-5 mb-0 @(Model.ExpiryDate < DateTime.Now ? "text-danger" : "text-success")">
+                            @Model.ExpiryDate.ToShortDateString()
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <h4 class="mb-3">Journey Timeline</h4>
-    <div class="timeline">
-        @if(history != null) {
-            foreach(var item in history) {
-                <div class="card mb-3 border-left-primary shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1 text-primary">@item.ActionType</h5>
-                            <small>@item.ActionTime.ToString("g")</small>
+    <!-- Timeline & Ledger Grid -->
+    <div class="row g-5">
+        <!-- Timeline -->
+        <div class="col-lg-5">
+            <h4 class="fw-bold mb-4">Supply Chain Journey</h4>
+            <div class="timeline-container ps-2">
+                @if(history != null) {
+                    foreach(var item in history) {
+                         <div class="timeline-item position-relative pb-4 ps-4 border-start border-2 border-primary">
+                            <i class="bi bi-circle-fill position-absolute start-0 top-0 translate-middle text-primary bg-white fs-6"></i>
+                            <div class="card-modern p-3 shadow-sm" style="border-left: none;">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="badge badge-info">@item.ActionType</span>
+                                    <small class="text-muted">@item.ActionTime.ToString("g")</small>
+                                </div>
+                                <p class="mb-0 small text-muted">
+                                    @if(item.ActionType == "CREATED" || item.ActionType == "BATCH_CREATED") {
+                                        <span>Produced by <strong>@Model.CreatedByOrg?.OrgName</strong></span>
+                                    } else if (item.ToOrg != null) {
+                                        <span>Handed over to <strong>@item.ToOrg.OrgName</strong> (@item.ToOrg.OrgType)</span>
+                                    } else {
+                                        <span>Action recorded on network</span>
+                                    }
+                                </p>
+                            </div>
                         </div>
-                        <p class="mb-1">
-                            @if(item.ActionType == "CREATED" || item.ActionType == "BATCH_CREATED") {
-                                <span>Created by <strong>@Model.CreatedByOrg?.OrgName</strong></span>
-                            } else if (item.ToOrg != null) {
-                                <span>Transferred to <strong>@item.ToOrg.OrgName</strong> (@item.ToOrg.OrgType)</span>
-                            } else {
-                                <span>@item.ActionType</span>
-                            }
-                        </p>
-                    </div>
-                </div>
-            }
-        }
-    </div>
-
-    <h4 class="mb-3 mt-5">Blockchain Ledger Records (Immutable)</h4>
-    <div class="table-responsive">
-        <table class="table table-sm table-bordered">
-            <thead class="table-light">
-                <tr>
-                    <th>Timestamp</th>
-                    <th>Action</th>
-                    <th>From</th>
-                    <th>To</th>
-                    <th>Hash (Simulated)</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if(ledger != null)
-                {
-                    foreach(var l in ledger)
-                    {
-                        <tr>
-                            <td>@l.ActionTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                            <td>@l.Action</td>
-                            <td>@l.FromOrgId</td>
-                            <td>@l.ToOrgId</td>
-                            <td><code class="text-muted">@GetHashCode(l)</code></td>
-                        </tr>
                     }
                 }
-            </tbody>
-        </table>
+            </div>
+        </div>
+
+        <!-- Ledger -->
+        <div class="col-lg-7">
+            <h4 class="fw-bold mb-4">Blockchain Ledger (Immutable)</h4>
+            <div class="card-modern p-0 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table-modern mb-0 table-sm">
+                        <thead>
+                            <tr class="bg-light">
+                                <th>Timestamp</th>
+                                <th>Action</th>
+                                <th>Hash (Simulated)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if(ledger != null)
+                            {
+                                foreach(var l in ledger)
+                                {
+                                    <tr>
+                                        <td><small>@l.ActionTime.ToString("yyyy-MM-dd HH:mm:ss")</small></td>
+                                        <td><span class="badge badge-secondary">@l.Action</span></td>
+                                        <td><code class="text-muted small">@GetHashCode(l)</code></td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <div class="mt-4 text-center">
-        <a asp-action="Index" class="btn btn-outline-primary">Verify Another Batch</a>
+
+    <div class="text-center mt-5">
+        <a asp-action="Index" class="btn btn-secondary-modern btn-lg px-5">
+            <i class="bi bi-search me-2"></i> Verify Another Drug
+        </a>
     </div>
 </div>
 
 @functions {
     string GetHashCode(BlockchainLedger l) {
-        // Simple hash simulation for display
         var input = $"{l.DrugBatchId}{l.Action}{l.ActionTime.Ticks}";
         using (var sha = System.Security.Cryptography.SHA256.Create()) {
             var bytes = System.Text.Encoding.UTF8.GetBytes(input);

@@ -5,21 +5,27 @@
     int pendingCount = Model.Count(m => m.IsActionEnabled);
 }
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
-        <h2><i class="bi bi-hospital text-success"></i> Pharmacy Dashboard <small class="text-muted fs-5 ms-2">(@User.Identity?.Name)</small></h2>
+<div class="fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+         <div>
+            <h2 class="mb-1">Pharmacy Dashboard</h2>
+            <p class="text-muted">Accept shipments and manage inventory.</p>    
+        </div>
+         <div class="text-end">
+            <span class="badge badge-success">
+                 <i class="bi bi-hospital me-1"></i> @User.Identity?.Name
+            </span>
+        </div>
     </div>
 
     <!-- Stats -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-12">
-            <div class="card border-0 shadow-sm h-100 bg-success text-white">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="card-title">Pending Arrivals</h5>
-                        <p class="display-6 fw-bold mb-0">@pendingCount</p>
-                    </div>
-                    <i class="bi bi-box-seam fs-1 opacity-50"></i>
+    <div class="dashboard-grid mb-4">
+         <div class="card-modern" style="border-left: 5px solid #198754;">
+            <div class="stat-card">
+                <span class="stat-label">Pending Arrivals</span>
+                <span class="stat-value text-success">@pendingCount</span>
+                 <div class="mt-2 text-muted small">
+                     <i class="bi bi-truck me-1"></i> In-transit from Distributor
                 </div>
             </div>
         </div>
@@ -27,87 +33,95 @@
 
     @if (TempData["Message"] != null)
     {
-        <div class="alert alert-success shadow-sm rounded-3">@TempData["Message"]</div>
+         <div class="alert alert-success d-flex align-items-center mb-4 shadow-sm" role="alert">
+             <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <div>@TempData["Message"]</div>
+        </div>
     }
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger shadow-sm rounded-3">@TempData["Error"]</div>
+         <div class="alert alert-danger d-flex align-items-center mb-4 shadow-sm" role="alert">
+             <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <div>@TempData["Error"]</div>
+        </div>
     }
 
-    <div class="card text-dark text-decoration-none border-0 shadow-sm rounded-3 mb-4">
-        <div class="card-header bg-white py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Incoming Batches</h6>
+    <div class="card-modern mb-5">
+        <div class="card-header-modern">
+             <h4 class="m-0">Incoming Batches</h4>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-striped align-middle mb-0">
-                    <thead class="bg-light text-secondary">
+        <div class="table-responsive">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Batch ID</th>
+                        <th>Drug Name</th>
+                        <th>Quantity</th>
+                        <th>Mfg Date</th>
+                        <th>Exp Date</th>
+                        <th>Status/Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="6" class="text-center py-4 text-muted">No incoming batches found.</td></tr>
+                    }
+                    @foreach (var item in Model)
+                    {
                         <tr>
-                            <th class="py-3 px-3">Batch ID</th>
-                            <th>Drug Name</th>
-                            <th>Quantity</th>
-                            <th>Mfg Date</th>
-                            <th>Exp Date</th>
-                            <th>Status/Actions</th>
+                            <td class="fw-bold">
+                                <a asp-controller="Verification" asp-action="SupplyChain" asp-route-batchId="@item.Batch.DrugBatchId" class="text-primary text-decoration-none">
+                                    #@item.Batch.DrugBatchId
+                                </a>
+                            </td>
+                            <td>@item.Batch.Drug?.DrugName</td>
+                            <td>@item.Batch.QuantityProduced</td>
+                            <td>@item.Batch.ManufactureDate.ToShortDateString()</td>
+                            <td>@item.Batch.ExpiryDate.ToShortDateString()</td>
+                            <td>
+                                @if (item.IsActionEnabled)
+                                {
+                                    <form asp-action="Accept" method="post" style="display:inline;">
+                                        <input type="hidden" name="batchId" value="@item.Batch.DrugBatchId" />
+                                        <button type="submit" class="btn btn-sm btn-primary-modern">
+                                            <i class="bi bi-check-lg me-1"></i> Accept Batch
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-success">
+                                        <i class="bi bi-check-all"></i> In Inventory
+                                    </span>
+                                }
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @if (!Model.Any())
-                        {
-                            <tr><td colspan="6" class="text-center py-4 text-muted">No incoming batches.</td></tr>
-                        }
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td class="px-3 fw-bold text-primary">@item.Batch.DrugBatchId</td>
-                                <td>@item.Batch.Drug?.DrugName</td>
-                                <td>@item.Batch.QuantityProduced</td>
-                                <td>@item.Batch.ManufactureDate.ToShortDateString()</td>
-                                <td>@item.Batch.ExpiryDate.ToShortDateString()</td>
-                                <td>
-                                    @if (item.IsActionEnabled)
-                                    {
-                                        <form asp-action="Accept" method="post" style="display:inline;">
-                                            <input type="hidden" name="batchId" value="@item.Batch.DrugBatchId" />
-                                            <button type="submit" class="btn btn-success btn-sm rounded-pill shadow-sm">
-                                                <i class="bi bi-check-circle"></i> Accept Batch
-                                            </button>
-                                        </form>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge rounded-pill bg-light text-success border border-success">
-                                            <i class="bi bi-check-lg"></i> In Inventory
-                                        </span>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
     
     <div class="row g-4">
          <div class="col-md-6">
-             <div class="card h-100 shadow-sm border-0">
-                 <div class="card-body text-center py-5">
-                     <i class="bi bi-box-seam text-primary display-4 mb-3"></i>
-                     <h4 class="card-title">Inventory Management</h4>
-                     <p class="card-text text-muted">View and monitor current stock and expiry dates.</p>
-                     <a asp-action="Inventory" class="btn btn-primary rounded-pill px-4">View Inventory</a>
+             <div class="card-modern text-center p-5">
+                 <div class="mb-3 text-primary">
+                    <i class="bi bi-box-seam" style="font-size: 3rem;"></i>
                  </div>
+                 <h3 class="h4 fw-bold">Inventory Management</h3>
+                 <p class="text-muted mb-4">View and monitor current stock levels and expiry dates.</p>
+                 <a asp-action="Inventory" class="btn btn-primary-modern px-4">View Inventory</a>
              </div>
          </div>
          <div class="col-md-6">
-             <div class="card h-100 shadow-sm border-0">
-                 <div class="card-body text-center py-5">
-                     <i class="bi bi-cart-check text-success display-4 mb-3"></i>
-                     <h4 class="card-title">Sales Point</h4>
-                     <p class="card-text text-muted">Record new sales and update stock levels.</p>
-                     <a asp-action="Sales" class="btn btn-success rounded-pill px-4">Record Sales</a>
+             <div class="card-modern text-center p-5">
+                 <div class="mb-3 text-success">
+                    <i class="bi bi-cart-check" style="font-size: 3rem;"></i>
                  </div>
+                 <h3 class="h4 fw-bold">Sales Point</h3>
+                 <p class="text-muted mb-4">Record new sales transactions and update stock.</p>
+                 <a asp-action="Sales" class="btn btn-success-modern px-4" style="background-color: #198754; color: white;">Record Sales</a>
              </div>
          </div>
     </div>

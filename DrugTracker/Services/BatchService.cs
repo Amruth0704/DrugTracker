@@ -3,6 +3,7 @@ using DrugTracker.Repositories.Interfaces;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 
 namespace DrugTracker.Services
 {
@@ -19,11 +20,13 @@ namespace DrugTracker.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IBlockchainService _blockchainService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public BatchService(IUnitOfWork unitOfWork, IBlockchainService blockchainService)
+        public BatchService(IUnitOfWork unitOfWork, IBlockchainService blockchainService, IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork;
             _blockchainService = blockchainService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<DrugBatch> CreateBatchAsync(int drugId, int quantity, DateTime manufacturingDate, DateTime expiryDate, int manufOrgId, int userId)
@@ -77,7 +80,7 @@ namespace DrugTracker.Services
                     CreatedByOrgId = manufOrgId
                 };
 
-                await _unitOfWork.DrugBatches.AddAsync(batch);
+                await _unitOfWork.DrugBatches.AddAsync(batch, userId, manufOrgId, "Manufacturer", GetIpAddress());
                 
                 // Initial History
                 var history = new BatchOwnershipHistory
@@ -88,7 +91,7 @@ namespace DrugTracker.Services
                     ToOrgId = manufOrgId, 
                     ActionTime = DateTime.Now
                 };
-                 await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history);
+                 await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history, userId, manufOrgId, "Manufacturer", GetIpAddress());
 
                 // Blockchain
                 await _blockchainService.RecordActionAsync(batchId, "BATCH_CREATED", manufOrgId, null, quantity);
@@ -132,7 +135,7 @@ namespace DrugTracker.Services
                      PerformedBy = userId,
                      ActionTime = DateTime.Now
                  };
-                 await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history);
+                 await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history, userId, fromOrgId, "Manufacturer", GetIpAddress());
                  
                  await _unitOfWork.CommitTransactionAsync();
              }
@@ -164,7 +167,7 @@ namespace DrugTracker.Services
                      PerformedBy = userId,
                      ActionTime = DateTime.Now
                  };
-                 await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history);
+                 await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history, userId, fromOrgId, "Distributor", GetIpAddress());
                  
                  await _unitOfWork.CommitTransactionAsync();
              }
@@ -197,7 +200,7 @@ namespace DrugTracker.Services
                     ReceivedQty = batch.QuantityProduced,
                     LastUpdated = DateTime.Now
                 };
-                await _unitOfWork.Inventory.AddOrUpdateInventoryAsync(inventory);
+                await _unitOfWork.Inventory.AddOrUpdateInventoryAsync(inventory, userId, pharmacyOrgId, "Pharmacy", GetIpAddress());
 
                 await _blockchainService.RecordActionAsync(batchId, "ACCEPTED_BY_PHARMACY", null, pharmacyOrgId, batch.QuantityProduced);
                 
@@ -213,7 +216,7 @@ namespace DrugTracker.Services
                      PerformedBy = userId,
                      ActionTime = DateTime.Now
                  };
-                 await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history);
+                 await _unitOfWork.DrugBatches.AddDispatchRecordAsync(history, userId, pharmacyOrgId, "Pharmacy", GetIpAddress());
 
                 await _unitOfWork.CommitTransactionAsync();
             }
@@ -233,12 +236,17 @@ namespace DrugTracker.Services
                 if (inv == null || inv.AvailableQty < quantity) throw new Exception("Insufficient inventory");
 
                 inv.AvailableQty -= quantity;
-                await _unitOfWork.Inventory.AddOrUpdateInventoryAsync(inv);
+                await _unitOfWork.Inventory.AddOrUpdateInventoryAsync(inv, userId, pharmacyOrgId, "Pharmacy", GetIpAddress());
 
                 await _blockchainService.RecordActionAsync(batchId, "SOLD_TO_CONSUMER", pharmacyOrgId, null, quantity);
                 await _unitOfWork.CommitTransactionAsync();
             }
             catch { await _unitOfWork.RollbackTransactionAsync(); throw; }
+        }
+        private string GetIpAddress()
+        {
+            var ip = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+            return string.IsNullOrEmpty(ip) ? "::1" : ip;
         }
     }
 }

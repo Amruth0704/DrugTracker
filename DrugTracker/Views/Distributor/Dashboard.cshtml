@@ -6,26 +6,36 @@
     int readyToDispatchCount = Model.Count(m => m.IsActionEnabled);
 }
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
-        <h2><i class="bi bi-truck text-warning"></i> Distributor Dashboard <small class="text-muted fs-5 ms-2">(@User.Identity?.Name)</small></h2>
+<div class="fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+         <div>
+            <h2 class="mb-1">Distributor Dashboard</h2>
+            <p class="text-muted">Manage incoming shipments and pharmacy distribution.</p>    
+        </div>
+        <div class="text-end">
+            <span class="badge badge-info">
+                 <i class="bi bi-person-badge me-1"></i> @User.Identity?.Name
+            </span>
+        </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-6">
-            <div class="card border-0 shadow-sm h-100 bg-primary text-white">
-                 <div class="card-body">
-                    <h5 class="card-title">Incoming Batches</h5>
-                    <p class="display-6 fw-bold">@incomingCount</p>
+    <div class="dashboard-grid">
+         <div class="card-modern" style="border-left: 5px solid var(--primary-color);">
+            <div class="stat-card">
+                <span class="stat-label">Incoming Batches</span>
+                <span class="stat-value">@incomingCount</span>
+                 <div class="mt-2 text-muted small">
+                    <i class="bi bi-box-arrow-in-down me-1"></i> Received from Manufacturer
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card border-0 shadow-sm h-100 bg-info text-white">
-                 <div class="card-body">
-                    <h5 class="card-title">Ready for Pharmacy</h5>
-                    <p class="display-6 fw-bold">@readyToDispatchCount</p>
+        <div class="card-modern" style="border-left: 5px solid var(--secondary-color);">
+             <div class="stat-card">
+                <span class="stat-label">Ready for Pharmacy</span>
+                <span class="stat-value text-secondary">@readyToDispatchCount</span>
+                 <div class="mt-2 text-muted small">
+                    <i class="bi bi-shop me-1"></i> Awaiting Dispatch
                 </div>
             </div>
         </div>
@@ -33,101 +43,116 @@
 
     @if (TempData["Message"] != null)
     {
-        <div class="alert alert-success shadow-sm rounded-3">@TempData["Message"]</div>
+        <div class="alert alert-success d-flex align-items-center mb-4 shadow-sm" role="alert">
+             <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <div>@TempData["Message"]</div>
+        </div>
     }
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger shadow-sm rounded-3">@TempData["Error"]</div>
+         <div class="alert alert-danger d-flex align-items-center mb-4 shadow-sm" role="alert">
+             <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <div>@TempData["Error"]</div>
+        </div>
     }
 
-    <div class="card text-dark text-decoration-none border-0 shadow-sm rounded-3">
-        <div class="card-header bg-white py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Batch Management</h6>
+    <div class="card-modern">
+        <div class="card-header-modern">
+             <h4 class="m-0">Batch Management</h4>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-striped align-middle mb-0">
-                    <thead class="bg-light text-secondary">
+        <div class="table-responsive" style="overflow-x: auto;">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Batch ID</th>
+                        <th>Drug Name</th>
+                        <th>Qty</th>
+                        <th>Mfg Date</th>
+                        <th>Exp Date</th>
+                        <th>Status</th>
+                        <th>Transferred To</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
                         <tr>
-                            <th class="py-3 px-3">Batch ID</th>
-                            <th>Drug Name</th>
-                            <th>Qty</th>
-                            <th>Mfg Date</th>
-                            <th>Exp Date</th>
-                            <th>Status</th>
-                            <th>Transferred To</th>
-                            <th class="text-end px-3">Actions</th>
+                            <td class="fw-bold">
+                                <a asp-controller="Verification" asp-action="SupplyChain" asp-route-batchId="@item.Batch.DrugBatchId" class="text-primary text-decoration-none">
+                                    #@item.Batch.DrugBatchId
+                                </a>
+                            </td>
+                            <td>@item.Batch.Drug?.DrugName</td>
+                            <td>@item.Batch.QuantityProduced</td>
+                            <td>@item.Batch.ManufactureDate.ToShortDateString()</td>
+                            <td>@item.Batch.ExpiryDate.ToShortDateString()</td>
+                            <td>
+                                @if (item.IsActionEnabled)
+                                {
+                                    <span class="badge badge-info">Received</span>
+                                }
+                                else
+                                {
+                                     <span class="badge badge-success">Dispatched</span>
+                                }
+                            </td>
+                            <td>@item.TransferredToOrgName</td>
+                            <td class="text-end">
+                                @if (item.IsActionEnabled)
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary-modern" data-bs-toggle="modal" data-bs-target="#dispatchModal-@item.Batch.DrugBatchId">
+                                        <i class="bi bi-truck me-1"></i> Dispatch
+                                    </button>
+                                }
+                                else
+                                {
+                                     <button class="btn btn-sm btn-secondary-modern" disabled>Dispatched</button>
+                                }
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td class="px-3 fw-bold text-primary">@item.Batch.DrugBatchId</td>
-                                <td>@item.Batch.Drug?.DrugName</td>
-                                <td>@item.Batch.QuantityProduced</td>
-                                <td>@item.Batch.ManufactureDate.ToShortDateString()</td>
-                                <td>@item.Batch.ExpiryDate.ToShortDateString()</td>
-                                <td>
-                                    @if (item.IsActionEnabled)
-                                    {
-                                        <span class="badge rounded-pill bg-info text-dark">Received</span>
-                                    }
-                                    else
-                                    {
-                                         <span class="badge rounded-pill bg-secondary">Dispatched</span>
-                                    }
-                                </td>
-                                <td>@item.TransferredToOrgName</td>
-                                <td class="text-end px-3">
-                                    @if (item.IsActionEnabled)
-                                    {
-                                        <button type="button" class="btn btn-warning btn-sm rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#dispatchModal-@item.Batch.DrugBatchId">
-                                            <i class="bi bi-truck"></i> Dispatch
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                         <button class="btn btn-sm btn-light text-muted border rounded-pill" disabled>Dispatched</button>
-                                    }
-                                    
-                                    <!-- Modal -->
-                                    <div class="modal fade" id="dispatchModal-@item.Batch.DrugBatchId" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form asp-action="Dispatch" method="post">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Dispatch Batch @item.Batch.DrugBatchId</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body text-start">
-                                                        <input type="hidden" name="batchId" value="@item.Batch.DrugBatchId" />
-                                                        <div class="mb-3">
-                                                            <label class="form-label">Select Pharmacy</label>
-                                                            <select name="pharmacyId" class="form-select" required>
-                                                                <option value="">-- Select Pharmacy --</option>
-                                                                @if(ViewBag.Pharmacies != null) {
-                                                                    foreach(var p in (IEnumerable<dynamic>)ViewBag.Pharmacies) {
-                                                                        <option value="@p.OrgId">@p.OrgName</option>
-                                                                    }
-                                                                }
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                        <button type="submit" class="btn btn-warning">Dispatch</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<!-- Modals outside the table -->
+@foreach (var item in Model)
+{
+    @if (item.IsActionEnabled)
+    {
+        <!-- Modal -->
+        <div class="modal fade" id="dispatchModal-@item.Batch.DrugBatchId" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <form asp-action="Dispatch" method="post">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Dispatch Batch @item.Batch.DrugBatchId</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-start">
+                            <input type="hidden" name="batchId" value="@item.Batch.DrugBatchId" />
+                            <div class="mb-3">
+                                <label class="form-label">Select Pharmacy</label>
+                                <select name="pharmacyId" class="form-control-modern" required>
+                                    <option value="">-- Select Pharmacy --</option>
+                                    @if(ViewBag.Pharmacies != null) {
+                                        foreach(var p in (IEnumerable<dynamic>)ViewBag.Pharmacies) {
+                                            <option value="@p.OrgId">@p.OrgName</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary-modern">Dispatch</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+}

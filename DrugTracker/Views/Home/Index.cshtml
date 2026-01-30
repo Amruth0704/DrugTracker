@@ -2,75 +2,107 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="hero-section text-center">
-    <div class="container fade-in-up">
-        <h1 class="display-3 fw-bold mb-3"><span class="text-gradient">Blockchain Based<br>Drug Tracking System</span></h1>
-        <p class="mb-5">Ensuring pharmaceutical integrity from manufacturer to consumer.</p>
-    </div>
+<div class="public-layout">
+    <!-- Hero Section -->
+    <header class="hero-section text-center position-relative overflow-hidden">
+        <div class="container position-relative" style="z-index: 2;">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 hero-text fade-in">
+                    <span class="badge badge-info mb-3">Blockchain Powered Security</span>
+                    <h1 class="display-3 fw-bold mb-4">Trace Every Pill from <br> Factory to Pharmacy</h1>
+                    <p class="lead text-muted mb-5">
+                        Ensure authenticity and safety with our decentralized drug tracking system. 
+                        Prevent counterfeit medicines and enable real-time supply chain visibility.
+                    </p>
+                    <div class="d-flex justify-content-center gap-3">
+                         <a asp-controller="Verification" asp-action="Index" class="btn btn-primary-modern btn-lg px-5 py-3">
+                            <i class="bi bi-search me-2"></i> Track a Medicine
+                        </a>
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-secondary-modern btn-lg px-5 py-3">
+                            Partner Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Abstract Background Elements -->
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="z-index: -1; opacity: 0.1; pointer-events: none;">
+                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <circle cx="10" cy="10" r="30" fill="url(#grad1)" />
+                    <circle cx="90" cy="90" r="40" fill="url(#grad2)" />
+                    <defs>
+                        <radialGradient id="grad1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                            <stop offset="0%" style="stop-color:rgb(13,110,253);stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:rgb(255,255,255);stop-opacity:0" />
+                        </radialGradient>
+                        <radialGradient id="grad2" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                            <stop offset="0%" style="stop-color:rgb(102,16,242);stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:rgb(255,255,255);stop-opacity:0" />
+                        </radialGradient>
+                    </defs>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="py-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card-modern text-center h-100 p-4">
+                        <div class="mb-3 text-primary">
+                            <i class="bi bi-link-45deg" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="h4 fw-bold">Blockchain Security</h3>
+                        <p class="text-muted">
+                            Immutable ledger ensures that once a drug batch is recorded, 
+                            it cannot be tampered with or altered.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-modern text-center h-100 p-4">
+                        <div class="mb-3 text-primary">
+                            <i class="bi bi-eye" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="h4 fw-bold">Real-time Visiblity</h3>
+                        <p class="text-muted">
+                            Track the movement of pharmaceutical products across the entire supply chain 
+                            in real-time.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-modern text-center h-100 p-4">
+                        <div class="mb-3 text-primary">
+                            <i class="bi bi-shield-check" style="font-size: 3rem;"></i>
+                        </div>
+                        <h3 class="h4 fw-bold">Counterfeit Prevention</h3>
+                        <p class="text-muted">
+                            Empower consumers to verify the authenticity of their medicine 
+                            instantly using a unique batch ID.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="py-5 bg-white">
+        <div class="container text-center">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <h2 class="fw-bold mb-4">Ready to secure your supply chain?</h2>
+                    <p class="lead text-muted mb-4">
+                        Join the network of trusted manufacturers, distributors, and pharmacies.
+                    </p>
+                    <a asp-controller="Account" asp-action="Register" class="btn btn-primary-modern btn-lg">
+                        Get Started
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
-
-<div class="container">
-    <div class="row g-4 justify-content-center">
-        <!-- Manufacturer -->
-        <div class="col-md-3 fade-in-up delay-100">
-            <div class="card h-100 hover-card shadow-sm">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3">
-                        <i class="bi bi-building fs-1 text-primary"></i>
-                    </div>
-                    <h5 class="card-title fw-bold">Manufacturer</h5>
-                    <p class="card-text text-muted small">Create batches and initiate the supply chain.</p>
-                    <a asp-controller="Account" asp-action="Login" asp-route-expectedRole="Manufacturer" class="btn btn-primary w-100 stretched-link">Login</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Distributor -->
-        <div class="col-md-3 fade-in-up delay-200">
-            <div class="card h-100 hover-card shadow-sm">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3">
-                        <i class="bi bi-truck fs-1 text-warning"></i>
-                    </div>
-                    <h5 class="card-title fw-bold">Distributor</h5>
-                    <p class="card-text text-muted small">Manage logistics and transfer to pharmacies.</p>
-                    <a asp-controller="Account" asp-action="Login" asp-route-expectedRole="Distributor" class="btn btn-warning text-white w-100 stretched-link">Login</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pharmacy -->
-        <div class="col-md-3 fade-in-up delay-300">
-            <div class="card h-100 hover-card shadow-sm">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3">
-                        <i class="bi bi-hospital fs-1 text-success"></i>
-                    </div>
-                    <h5 class="card-title fw-bold">Pharmacy</h5>
-                    <p class="card-text text-muted small">Receive stock and sell to verified patients.</p>
-                    <a asp-controller="Account" asp-action="Login" asp-route-expectedRole="Pharmacy" class="btn btn-success w-100 stretched-link">Login</a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Public Verification -->
-         <div class="col-md-3 fade-in-up delay-300">
-            <div class="card h-100 hover-card shadow-sm border-info">
-                <div class="card-body text-center p-4">
-                    <div class="mb-3">
-                        <i class="bi bi-shield-check fs-1 text-info"></i>
-                    </div>
-                    <h5 class="card-title fw-bold">Verify Medicine</h5>
-                    <p class="card-text text-muted small">Public trust layer. Check any batch journey.</p>
-                    <a asp-controller="Verification" asp-action="Index" class="btn btn-outline-info w-100 stretched-link">Track Now</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        // Optional: Add more JS animations here if needed, but CSS is handling the load animations.
-    </script>
-}
