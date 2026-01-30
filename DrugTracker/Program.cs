@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddDbContext<DrugTrackerDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("HCAminiEHR")));
@@ -17,11 +18,10 @@ builder.Services.AddDbContext<DrugTrackerDbContext>(options =>
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IDrugBatchRepository, DrugBatchRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IBlockchainLedgerRepository, BlockchainLedgerRepository>();
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 
 // Services
-builder.Services.AddScoped<DrugTracker.Services.IBlockchainService, DrugTracker.Services.BlockchainService>();
 builder.Services.AddScoped<DrugTracker.Services.IBatchService, DrugTracker.Services.BatchService>();
 
 // Authentication

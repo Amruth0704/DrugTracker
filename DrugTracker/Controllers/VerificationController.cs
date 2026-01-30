@@ -43,7 +43,7 @@ namespace DrugTracker.Controllers
 
             if (batch == null)
             {
-                ViewBag.Error = "Batch not found. Please check the Batch ID / Code.";
+                ViewBag.Error = "Fake Drug never Registered in BlockChain.";
                 return View("Index"); 
             }
 
@@ -63,9 +63,9 @@ namespace DrugTracker.Controllers
             }
 
             // 2. Validate Batch Creation/Edit
-            // Find the LATEST authoritative record from Manufacturer (Created OR Edited)
+            // Find the LATEST authoritative record from Manufacturer (Created OR Updated)
             var authoritativeLedger = ledger
-                .Where(l => l.Action == "BATCH_CREATED" || l.Action == "BATCH_EDITED")
+                .Where(l => l.Action == "BATCH_CREATED" || l.Action == "BATCH_UPDATED")
                 .OrderByDescending(l => l.ActionTime)
                 .FirstOrDefault();
 
@@ -76,7 +76,12 @@ namespace DrugTracker.Controllers
                     isTampered = true;
                     validationErrors.Add($"Batch Quantity Mismatch! Current: {batch.QuantityProduced}, Ledger ({authoritativeLedger.Action}): {authoritativeLedger.Quantity}");
                 }
-                if (batch.CreatedByOrgId != authoritativeLedger.FromOrgId)
+
+                // For BATCH_CREATED, the org is in ToOrgId (as it's created 'to' the manufacturer's inventory)
+                // For BATCH_UPDATED, the org is in FromOrgId (as the manufacturer 'updated' it)
+                int? ledgerOrgId = authoritativeLedger.Action == "BATCH_CREATED" ? authoritativeLedger.ToOrgId : authoritativeLedger.FromOrgId;
+
+                if (batch.CreatedByOrgId != ledgerOrgId)
                 {
                     isTampered = true;
                     validationErrors.Add("Batch Manufacturer Mismatch!");

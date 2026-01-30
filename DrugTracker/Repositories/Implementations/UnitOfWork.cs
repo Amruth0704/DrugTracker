@@ -10,7 +10,6 @@ namespace DrugTracker.Repositories.Implementations
         private readonly DrugTrackerDbContext _context;
         private IDrugBatchRepository? _drugBatches;
         private IUserRepository? _users;
-        private IInventoryRepository? _inventory;
         private IBlockchainLedgerRepository? _ledger;
         private IDbContextTransaction? _currentTransaction;
 
@@ -21,7 +20,6 @@ namespace DrugTracker.Repositories.Implementations
 
         public IDrugBatchRepository DrugBatches => _drugBatches ??= new DrugBatchRepository(_context);
         public IUserRepository Users => _users ??= new UserRepository(_context);
-        public IInventoryRepository Inventory => _inventory ??= new InventoryRepository(_context);
         public IBlockchainLedgerRepository Ledger => _ledger ??= new BlockchainLedgerRepository(_context);
 
         public async Task BeginTransactionAsync()

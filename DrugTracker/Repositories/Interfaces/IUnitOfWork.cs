@@ -7,7 +7,6 @@ namespace DrugTracker.Repositories.Interfaces
     {
         IDrugBatchRepository DrugBatches { get; }
         IUserRepository Users { get; }
-        IInventoryRepository Inventory { get; }
         IBlockchainLedgerRepository Ledger { get; }
         
         Task<int> SaveChangesAsync();

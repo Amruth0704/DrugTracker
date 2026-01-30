@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DrugTracker.Models
 {
+    [Obsolete("Use Role-Based Activity Logs (ManufacturerActivityLogs, DistributorActivityLogs, PharmacyActivityLogs) instead.")]
     public class ActivityLog
     {
         [Key]

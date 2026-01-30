@@ -1,3 +1,4 @@
+using DrugTracker.Models;
 using DrugTracker.Models.ViewModels;
 using DrugTracker.Repositories.Interfaces;
 using DrugTracker.Services;
@@ -19,52 +20,43 @@ namespace DrugTracker.Controllers
         private readonly DrugTracker.Data.DrugTrackerDbContext _context; // Direct context access for dropdowns/lookups if repository doesn't have it
         private readonly IConfiguration _configuration; // Added for IConfiguration
 
-        private readonly IBlockchainService _blockchainService;
-
-        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, DrugTracker.Data.DrugTrackerDbContext context, IBlockchainService blockchainService, IConfiguration configuration)
+        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, DrugTracker.Data.DrugTrackerDbContext context, IConfiguration configuration)
         {
             _batchService = batchService;
             _batchRepository = batchRepository;
             _context = context;
-            _blockchainService = blockchainService;
             _configuration = configuration;
         }
 
         public async Task<IActionResult> Dashboard()
         {
             int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
-            var batches = await _batchRepository.GetBatchesByManufacturerAsync(orgId);
+            
+            // Fetch consolidated data using the new Stored Procedure
+            var dashboardData = await _batchRepository.GetManufacturerDashboardDataAsync(orgId);
             
             // Populate Distributors for Dispatch Modal
-            ViewBag.Distributors = await _context.Organizations.Where(o => o.OrgType == "DISTRIBUTOR").ToListAsync();
+            ViewBag.Distributors = await _context.Organizations
+                .Where(o => o.OrgType == "DISTRIBUTOR")
+                .ToListAsync();
 
-            var viewModels = new List<BatchViewModel>();
-            foreach (var b in batches)
+            var viewModels = dashboardData.Select(d => new BatchViewModel
             {
-                var history = await _batchRepository.GetOwnershipHistoryAsync(b.DrugBatchId);
-                var last = history.LastOrDefault();
-                string transferredTo = "N/A";
-
-                // Find the transfer action initiated by THIS manufacturer
-                var transferRecord = history.FirstOrDefault(h => h.ActionType == "TRANSFERRED" && h.FromOrgId == orgId);
-                
-                if (transferRecord != null)
-                {
-                   var toOrg = await _context.Organizations.FindAsync(transferRecord.ToOrgId);
-                   transferredTo = toOrg?.OrgName ?? "Unknown";
-                }
-
-                var vm = new BatchViewModel
-                {
-                    Batch = b,
-                    LatestAction = last?.ActionType ?? "CREATED",
-                    IsActionEnabled = (last == null || 
-                                     string.Equals(last.ActionType, "CREATED", StringComparison.OrdinalIgnoreCase) || 
-                                     string.Equals(last.ActionType, "BATCH_CREATED", StringComparison.OrdinalIgnoreCase)),
-                    TransferredToOrgName = transferredTo
-                };
-                viewModels.Add(vm);
-            }
+                Batch = new DrugBatch 
+                { 
+                    DrugBatchId = d.DrugBatchId,
+                    Drug = new Drug { DrugName = d.DrugName },
+                    QuantityProduced = d.QuantityProduced,
+                    ManufactureDate = d.ManufactureDate,
+                    ExpiryDate = d.ExpiryDate,
+                    CreatedAt = d.CreatedAt
+                },
+                LatestAction = d.LatestAction ?? "CREATED",
+                IsActionEnabled = (string.IsNullOrEmpty(d.LatestAction) || 
+                                 string.Equals(d.LatestAction, "CREATED", StringComparison.OrdinalIgnoreCase) || 
+                                 string.Equals(d.LatestAction, "BATCH_CREATED", StringComparison.OrdinalIgnoreCase)),
+                TransferredToOrgName = d.TransferredToOrgName ?? "N/A"
+            }).ToList();
 
 
 
@@ -278,23 +270,15 @@ namespace DrugTracker.Controllers
                     }
                     else
                     {
-                        // Update Quantity
+                        // Use BatchService which calls the Stored Procedure
+                        // The SP handles: Table Update + Blockchain Ledger entry
+                        batch.DrugId = model.DrugId;
                         batch.QuantityProduced = model.Quantity;
+                        batch.ManufactureDate = model.ManufactureDate;
+                        batch.ExpiryDate = model.ManufactureDate.AddYears(3);
 
-                        // Update Dates if changed
-                        if (batch.ManufactureDate != model.ManufactureDate)
-                        {
-                             batch.ManufactureDate = model.ManufactureDate;
-                             // Auto-recalculate Expiry
-                             batch.ExpiryDate = model.ManufactureDate.AddYears(3);
-                        }
-
-                        // BLOCKCHAIN RECORD
-                        await _blockchainService.RecordActionAsync(batch.DrugBatchId, "BATCH_EDITED", orgId, null, batch.QuantityProduced);
-
-                        _context.Update(batch);
-                        await _context.SaveChangesAsync();
-                        TempData["Message"] = "Batch updated successfully.";
+                        await _batchService.UpdateBatchAsync(batch, userId);
+                        TempData["Message"] = "Batch updated successfully via Stored Procedure.";
                     }
 
                     return RedirectToAction("Dashboard");
@@ -323,45 +307,20 @@ namespace DrugTracker.Controllers
             try
             {
                 int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
-                int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
-                var history = await _batchRepository.GetOwnershipHistoryAsync(batchId);
-                var last = history.LastOrDefault();
-
-                // Strict Rule: Delete ONLY if Pre-Dispatch (CREATED or BATCH_CREATED)
-                if (last != null && 
-                    !string.Equals(last.ActionType, "CREATED", StringComparison.OrdinalIgnoreCase) && 
-                    !string.Equals(last.ActionType, "BATCH_CREATED", StringComparison.OrdinalIgnoreCase))
-                {
-                    TempData["Error"] = "Cannot delete batch. It has already been dispatched or does not exist.";
-                    return RedirectToAction("Dashboard");
-                }
                 
-                // Double check ownership
-                var batch = await _context.DrugBatches.FindAsync(batchId);
-                if (batch == null || batch.CreatedByOrgId != orgId)
-                {
-                     TempData["Error"] = "Batch not found or unauthorized.";
-                     return RedirectToAction("Dashboard");
-                }
-
-                // BLOCKCHAIN RECORD (Before Delete, to ensure ID references are valid if needed, or after? Ledger is separate table so Before/After is fine, but usually Record *then* Delete if we want to trace it. 
-                // However, if we delete the batch, FK constraints might fail if Ledger points to Batch?
-                // Ledger usually stores BatchId as string to keep history even if Batch Deleted. 
-                // Checks Models/BlockchainLedger.cs -> DrugBatchId is string. No FK. Good.
-                await _blockchainService.RecordActionAsync(batchId, "BATCH_DELETED", orgId, null, 0);
-
-                _context.DrugBatches.Remove(batch);
-                await _context.SaveChangesAsync();
+                // BatchService.DeleteBatchAsync now calls the Stored Procedure.
+                // The SP handles: Ownership Check + Blockchain Ledger + Batch Deletion
+                await _batchService.DeleteBatchAsync(batchId, orgId);
                 
                 TempData["Message"] = "Batch deleted successfully.";
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
-                TempData["Error"] = "Error deleting batch: " + ex.Message;
+                TempData["Error"] = ex.Message;
             }
-
             return RedirectToAction("Dashboard");
         }
+
         private void GenerateQRCode(BatchViewModel vm, QRCoder.QRCodeGenerator qrGenerator, string verificationUrl)
         {
             var qrCodeData = qrGenerator.CreateQrCode(verificationUrl, QRCoder.QRCodeGenerator.ECCLevel.Q);

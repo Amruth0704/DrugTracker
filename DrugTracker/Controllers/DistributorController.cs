@@ -1,3 +1,5 @@
+using DrugTracker.Models;
+using DrugTracker.Models.DTOs;
 using DrugTracker.Models.ViewModels;
 using DrugTracker.Repositories.Interfaces;
 using DrugTracker.Services;
@@ -26,43 +28,32 @@ namespace DrugTracker.Controllers
         public async Task<IActionResult> Dashboard()
         {
             int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
-            var batches = await _batchRepository.GetIncomingDispatchesAsync(orgId);
+            
+            // Fetch consolidated data using the new Stored Procedure
+            var dashboardData = await _batchRepository.GetDistributorDashboardDataAsync(orgId);
             
             // We need list of Pharmacies for the dispatch modal
-            ViewBag.Pharmacies = await _context.Organizations.Where(o => o.OrgType == "PHARMACY").ToListAsync();
-            
-            var viewModels = new List<BatchViewModel>();
-            foreach (var b in batches)
+            ViewBag.Pharmacies = await _context.Organizations
+                .Where(o => o.OrgType == "PHARMACY")
+                .ToListAsync();
+
+            var viewModels = dashboardData.Select(d => new BatchViewModel
             {
-                var history = await _batchRepository.GetOwnershipHistoryAsync(b.DrugBatchId);
-                var last = history.LastOrDefault();
-                // Enabled if last action was transfer TO this distributor (meaning we hold it) 
-                // AND we haven't transferred it yet.
-                // Simplified: If last action is "TRANSFERRED" and ToOrg == Us, it's ours.
-                // If we transferred it, last action would be "TRANSFERRED" and FromOrg == Us.
-                
-                bool isOurs = last != null && last.ToOrgId == orgId && last.ActionType == "TRANSFERRED";
-                
-                string transferredTo = "N/A";
-
-                // Find the transfer action initiated by THIS distributor
-                var transferRecord = history.FirstOrDefault(h => h.ActionType == "TRANSFERRED" && h.FromOrgId == orgId);
-
-                if (transferRecord != null)
-                {
-                    var toOrg = await _context.Organizations.FindAsync(transferRecord.ToOrgId);
-                    transferredTo = toOrg?.OrgName ?? "Unknown";
-                }
-
-                var vm = new BatchViewModel
-                {
-                    Batch = b,
-                    LatestAction = last?.ActionType ?? "N/A",
-                    IsActionEnabled = isOurs,
-                    TransferredToOrgName = transferredTo
-                };
-                viewModels.Add(vm);
-            }
+                Batch = new DrugBatch 
+                { 
+                    DrugBatchId = d.DrugBatchId,
+                    Drug = new Drug { DrugName = d.DrugName },
+                    QuantityProduced = d.QuantityProduced,
+                    ManufactureDate = d.ManufactureDate,
+                    ExpiryDate = d.ExpiryDate,
+                    CreatedAt = d.CreatedAt
+                },
+                LatestAction = d.LatestAction ?? "N/A",
+                // Enabled if latest entry's ToOrgId is US and it's a transfer OR if it's still with previous owner (N/A)
+                // Actually the SP returns LatestToOrgId which makes this easy:
+                IsActionEnabled = (d.LatestToOrgId == orgId && d.LatestAction == "TRANSFERRED"),
+                TransferredToOrgName = d.TransferredToOrgName ?? "N/A"
+            }).ToList();
 
             // Sort: Actionable items first, then by Creation Date
             viewModels = viewModels
