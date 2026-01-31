@@ -20,6 +20,7 @@
                             <th>Sold</th>
                             <th>Available</th>
                             <th>Expiry Date</th>
+                            <th>Action (Simulate Tampering)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -43,6 +44,14 @@
                                     <span class="@(item.ExpiryDate < DateTime.Now ? "text-danger fw-bold" : "")">
                                         @item.ExpiryDate.ToShortDateString()
                                     </span>
+                                </td>
+                                <td>
+                                    <!-- Test Tampering: Update Quantity Manually -->
+                                    <form asp-action="UpdateInventory" method="post" class="d-flex gap-2">
+                                        <input type="hidden" name="batchId" value="@item.DrugBatchId" />
+                                        <input type="number" name="newAvailableQty" class="form-control form-control-sm" style="width: 80px;" value="@item.AvailableQty" min="0" />
+                                        <button type="submit" class="btn btn-sm btn-warning">Update</button>
+                                    </form>
                                 </td>
                             </tr>
                         }

@@ -106,6 +106,9 @@
                                 @if (item.IsActionEnabled)
                                 {
                                     <div class="d-flex gap-2 justify-content-end">
+                                        <a asp-action="DownloadQrCode" asp-route-batchId="@item.Batch.DrugBatchId" class="btn btn-sm btn-info text-white" title="Download QR">
+                                            <i class="bi bi-qr-code"></i>
+                                        </a>
                                         <a asp-action="EditBatch" asp-route-id="@item.Batch.DrugBatchId" class="btn btn-sm btn-secondary-modern" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>

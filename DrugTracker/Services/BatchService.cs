@@ -200,7 +200,7 @@ namespace DrugTracker.Services
                     ReceivedQty = batch.QuantityProduced,
                     LastUpdated = DateTime.Now
                 };
-                await _unitOfWork.Inventory.AddOrUpdateInventoryAsync(inventory, userId, pharmacyOrgId, "Pharmacy", GetIpAddress());
+                await _unitOfWork.Inventory.AddOrUpdateInventoryAsync(inventory, userId, pharmacyOrgId, "Pharmacy", GetIpAddress(), isManualUpdate: false);
 
                 await _blockchainService.RecordActionAsync(batchId, "ACCEPTED_BY_PHARMACY", null, pharmacyOrgId, batch.QuantityProduced);
                 
@@ -236,7 +236,7 @@ namespace DrugTracker.Services
                 if (inv == null || inv.AvailableQty < quantity) throw new Exception("Insufficient inventory");
 
                 inv.AvailableQty -= quantity;
-                await _unitOfWork.Inventory.AddOrUpdateInventoryAsync(inv, userId, pharmacyOrgId, "Pharmacy", GetIpAddress());
+                await _unitOfWork.Inventory.AddOrUpdateInventoryAsync(inv, userId, pharmacyOrgId, "Pharmacy", GetIpAddress(), isManualUpdate: false);
 
                 await _blockchainService.RecordActionAsync(batchId, "SOLD_TO_CONSUMER", pharmacyOrgId, null, quantity);
                 await _unitOfWork.CommitTransactionAsync();

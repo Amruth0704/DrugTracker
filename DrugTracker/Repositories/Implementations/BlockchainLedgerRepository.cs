@@ -1,6 +1,7 @@
 using DrugTracker.Data;
 using DrugTracker.Models;
 using DrugTracker.Repositories.Interfaces;
+using DrugTracker.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using System.Collections.Generic;

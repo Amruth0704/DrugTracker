@@ -154,5 +154,36 @@ namespace DrugTracker.Controllers
 
         // Keep old Sell just in case, or remove. Instructions say "Update". 
         // I will remove the old simple "Sell" method to enforce Sales page usage, or redirect it.
+        [HttpPost]
+        public async Task<IActionResult> UpdateInventory(string batchId, int newAvailableQty)
+        {
+             try
+             {
+                 int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
+                 int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+                 var inventory = await _inventoryRepository.GetInventoryItemAsync(orgId, 0, batchId);
+                 if (inventory == null) throw new Exception("Inventory item not found");
+
+                 // Manual Update Logic (Simulates Tampering if resetting to full)
+                 inventory.AvailableQty = newAvailableQty;
+                 
+                 // We call the Repository AddOrUpdate, which calls the SP, which checks for Tampering
+                 await _inventoryRepository.AddOrUpdateInventoryAsync(inventory, userId, orgId, "Pharmacy", GetIpAddress(), isManualUpdate: true);
+                 
+                 TempData["Message"] = "Inventory manually updated.";
+             }
+             catch(Exception ex)
+             {
+                 TempData["Error"] = ex.Message;
+             }
+             return RedirectToAction("Inventory");
+        }
+
+        private string GetIpAddress()
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            return string.IsNullOrEmpty(ip) ? "::1" : ip;
+        }
     }
 }

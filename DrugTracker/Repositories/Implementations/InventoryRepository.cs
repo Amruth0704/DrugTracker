@@ -1,6 +1,7 @@
 using DrugTracker.Data;
 using DrugTracker.Models;
 using DrugTracker.Repositories.Interfaces;
+using DrugTracker.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ namespace DrugTracker.Repositories.Implementations
         }
 
         /* WRITE */
-        public async Task AddOrUpdateInventoryAsync(Inventory inventory, int userId, int orgId, string role, string ipAddress)
+        public async Task AddOrUpdateInventoryAsync(Inventory inventory, int userId, int orgId, string role, string ipAddress, bool isManualUpdate = false)
         {
             await _context.Database.ExecuteSqlRawAsync(
                 @"EXEC HealthCare.sp_AddOrUpdateInventory
@@ -26,6 +27,7 @@ namespace DrugTracker.Repositories.Implementations
                     @PharmacyOrgId,
                     @AvailableQty,
                     @ReceivedQty,
+                    @IsManualUpdate,
                     @UserId,
                     @OrgId,
                     @Role,
@@ -34,6 +36,7 @@ namespace DrugTracker.Repositories.Implementations
                 new SqlParameter("@PharmacyOrgId", inventory.PharmacyOrgId),
                 new SqlParameter("@AvailableQty", inventory.AvailableQty),
                 new SqlParameter("@ReceivedQty", inventory.ReceivedQty),
+                new SqlParameter("@IsManualUpdate", isManualUpdate),
                 new SqlParameter("@UserId", userId),
                 new SqlParameter("@OrgId", orgId),
                 new SqlParameter("@Role", role),
@@ -43,10 +46,10 @@ namespace DrugTracker.Repositories.Implementations
 
         public async Task<Inventory?> GetInventoryItemAsync(int pharmacyId, int drugId, string batchId)
         {
-            // Ignoring drugId param as batchId is unique enough, or check drug via nav property
             return await _context.Inventories
                 .Include(i => i.DrugBatch)
                 .ThenInclude(b => b.Drug)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(i =>
                     i.PharmacyOrgId == pharmacyId &&
                     i.DrugBatchId == batchId);
@@ -58,6 +61,7 @@ namespace DrugTracker.Repositories.Implementations
                 .Include(i => i.DrugBatch)
                 .ThenInclude(b => b.Drug)
                 .Where(i => i.PharmacyOrgId == pharmacyId && i.AvailableQty > 0)
+                .AsNoTracking()
                 .ToListAsync();
         }
 

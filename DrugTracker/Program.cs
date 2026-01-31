@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using DrugTracker.Data;
 using DrugTracker.Repositories.Interfaces;
 using DrugTracker.Repositories.Implementations;
+using DrugTracker.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,7 @@ builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IBlockchainLedgerRepository, BlockchainLedgerRepository>();
 
 // Services
+builder.Services.AddScoped<IQrCodeService, QrCodeService>();
 builder.Services.AddScoped<DrugTracker.Services.IBlockchainService, DrugTracker.Services.BlockchainService>();
 builder.Services.AddScoped<DrugTracker.Services.IBatchService, DrugTracker.Services.BatchService>();
 

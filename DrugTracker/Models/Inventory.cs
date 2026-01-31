@@ -24,6 +24,8 @@ namespace DrugTracker.Models
 
         public int ReceivedQty { get; set; }
 
+        public bool IsTampered { get; set; } = false;
+
         public DateTime LastUpdated { get; set; } = DateTime.Now;
     }
 }

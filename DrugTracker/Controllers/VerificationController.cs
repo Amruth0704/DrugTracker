@@ -1,5 +1,6 @@
 using DrugTracker.Models;
 using DrugTracker.Repositories.Interfaces;
+using DrugTracker.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
@@ -9,14 +10,18 @@ namespace DrugTracker.Controllers
     {
         private readonly IDrugBatchRepository _batchRepository;
         private readonly IBlockchainLedgerRepository _ledgerRepository;
-
         private readonly IInventoryRepository _inventoryRepository;
+        private readonly IQrCodeService _qrCodeService;
 
-        public VerificationController(IDrugBatchRepository batchRepository, IBlockchainLedgerRepository ledgerRepository, IInventoryRepository inventoryRepository)
+        public VerificationController(IDrugBatchRepository batchRepository, 
+            IBlockchainLedgerRepository ledgerRepository, 
+            IInventoryRepository inventoryRepository,
+            IQrCodeService qrCodeService)
         {
             _batchRepository = batchRepository;
             _ledgerRepository = ledgerRepository;
             _inventoryRepository = inventoryRepository;
+            _qrCodeService = qrCodeService;
         }
 
         public IActionResult Index()
@@ -130,27 +135,49 @@ namespace DrugTracker.Controllers
                  validationErrors.Add("No Blockchain Creation Record Found!");
             }
 
-            // 3. Validate Pharmacy Inventory (if applicable)
+            // 3. Validate Pharmacy Inventory & Sale Status
             var acceptedLedger = ledger.FirstOrDefault(l => l.Action == "ACCEPTED_BY_PHARMACY");
+            var soldLedger = ledger.FirstOrDefault(l => l.Action == "SOLD_TO_CONSUMER" || l.Action == "SOLD");
             
-            // NEW CHECK: If it hasn't reached pharmacy yet
             if (acceptedLedger == null)
             {
-                // User requirement: "Tablet might be fake because its never reached the Pharmacy"
-                // We mark it as 'tampered' or just a warning? The prompt implies it's a "fake" warning.
                 isTampered = true;
                 validationErrors.Add("Tablet might be fake because its never reached the Pharmacy");
+            }
+            else if (soldLedger == null)
+            {
+                // User requirement: "The sale not yet started by pharmacy might be fake drug Reconfirm with Pharmacy"
+                isTampered = true; 
+                validationErrors.Add("The sale not yet started by pharmacy might be fake drug Reconfirm with Pharmacy");
             }
             else if (acceptedLedger.ToOrgId.HasValue)
             {
                 var inventory = await _inventoryRepository.GetInventoryItemAsync(acceptedLedger.ToOrgId.Value, 0, batchId);
                 if (inventory != null)
                 {
-                   // Validation: Inventory ReceivedQty must match what was recorded when ACCEPTED.
                    if (inventory.ReceivedQty != acceptedLedger.Quantity)
                    {
                        isTampered = true;
-                       validationErrors.Add($"Pharmacy Inventory Mismatch! Inventory Received: {inventory.ReceivedQty}, Ledger: {acceptedLedger.Quantity}");
+                       validationErrors.Add("Received Quantity tampered");
+                   }
+                   
+                   if (inventory.IsTampered)
+                   {
+                       isTampered = true;
+                       validationErrors.Add("Tampered at Pharmacy (Inventory Quantity Manually Reset)");
+                   }
+
+                   // Blockchain Verification: Validate Available Qty against Sales
+                   var totalSold = ledger.Where(l => l.Action == "SOLD_TO_CONSUMER" || l.Action == "SOLD")
+                                         .Sum(l => l.Quantity ?? 0);
+                   
+                   // Expected = Accepted - Sold. (Note: using acceptedLedger.Quantity (int?) so coalesce to 0)
+                   var expectedAvailable = (acceptedLedger.Quantity ?? 0) - totalSold;
+
+                   if (inventory.AvailableQty != expectedAvailable)
+                   {
+                       isTampered = true;
+                       validationErrors.Add("Available Quantity tampered");
                    }
                 }
             }
@@ -212,6 +239,45 @@ namespace DrugTracker.Controllers
 
             ViewBag.History = history;
             return View(batch);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> VerifyViaQr(IFormFile qrFile)
+        {
+            if (qrFile == null || qrFile.Length == 0)
+            {
+                ViewBag.Error = "Please upload a valid QR code image.";
+                return View("Index");
+            }
+
+            try
+            {
+                using (var stream = qrFile.OpenReadStream())
+                {
+                    string? decodedJson = _qrCodeService.DecodeQrCode(stream);
+                    if (string.IsNullOrEmpty(decodedJson))
+                    {
+                        ViewBag.Error = "Could not read QR code. Please ensure it is a clear image.";
+                        return View("Index");
+                    }
+
+                    var qrData = System.Text.Json.JsonSerializer.Deserialize<dynamic>(decodedJson);
+                    string? batchId = qrData?.GetProperty("Id").GetString();
+                    
+                    if (string.IsNullOrEmpty(batchId))
+                    {
+                        ViewBag.Error = "Invalid QR code format.";
+                        return View("Index");
+                    }
+
+                    return await Track(batchId);
+                }
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Error = "Error processing QR code: " + ex.Message;
+                return View("Index");
+            }
         }
     }
 }

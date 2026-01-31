@@ -13,21 +13,39 @@
     
     <div class="w-100 fade-in delay-200" style="max-width: 600px;">
          <div class="card-modern p-5 shadow-lg border-0">
-             <form asp-action="Track" method="get">
+             <form asp-action="Track" method="get" class="mb-5">
                  <div class="mb-4">
-                     <label for="batchId" class="form-label text-uppercase text-muted fw-bold small">Enter Batch ID</label>
+                     <label for="batchId" class="form-label text-uppercase text-muted fw-bold small">Option 1: Enter Batch ID</label>
                      <div class="input-group">
                          <span class="input-group-text bg-white border-end-0">
                              <i class="bi bi-upc-scan text-primary fs-4"></i>
                          </span>
                          <input type="text" id="batchId" name="batchId" class="form-control form-control-lg border-start-0 ps-0" placeholder="e.g. BATCH-2026-X" style="height: 60px; font-size: 1.25rem;" required>
                      </div>
-                     <div class="form-text mt-2">
-                         <i class="bi bi-info-circle me-1"></i> You can find the Batch ID on the medicine packaging.
-                     </div>
                  </div>
                  <button class="btn btn-primary-modern w-100 py-3 fs-5" type="submit">
-                     Verify Now <i class="bi bi-arrow-right ms-2"></i>
+                     Verify Manually <i class="bi bi-search ms-2"></i>
+                 </button>
+             </form>
+
+             <div class="d-flex align-items-center my-4 fade-in">
+                 <hr class="flex-grow-1">
+                 <span class="px-3 text-muted fw-bold">OR</span>
+                 <hr class="flex-grow-1">
+             </div>
+
+             <form asp-action="VerifyViaQr" method="post" enctype="multipart/form-data">
+                 <div class="mb-4 text-start">
+                     <label for="qrFile" class="form-label text-uppercase text-muted fw-bold small">Option 2: Upload QR Code</label>
+                     <div class="input-group">
+                         <input type="file" id="qrFile" name="qrFile" class="form-control form-control-lg" accept="image/*" required>
+                     </div>
+                     <div class="form-text mt-2">
+                         <i class="bi bi-qr-code-scan me-1"></i> Upload the QR code you downloaded.
+                     </div>
+                 </div>
+                 <button class="btn btn-secondary-modern w-100 py-3 fs-5" type="submit">
+                     Upload & Verify <i class="bi bi-cloud-upload ms-2"></i>
                  </button>
              </form>
          </div>

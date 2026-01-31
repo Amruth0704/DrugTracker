@@ -14,16 +14,19 @@ namespace DrugTracker.Controllers
     {
         private readonly IBatchService _batchService;
         private readonly IDrugBatchRepository _batchRepository;
-        private readonly DrugTracker.Data.DrugTrackerDbContext _context; // Direct context access for dropdowns/lookups if repository doesn't have it
-
+        private readonly DrugTracker.Data.DrugTrackerDbContext _context; 
         private readonly IBlockchainService _blockchainService;
+        private readonly IQrCodeService _qrCodeService;
 
-        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, DrugTracker.Data.DrugTrackerDbContext context, IBlockchainService blockchainService)
+        public ManufacturerController(IBatchService batchService, IDrugBatchRepository batchRepository, 
+            DrugTracker.Data.DrugTrackerDbContext context, IBlockchainService blockchainService,
+            IQrCodeService qrCodeService)
         {
             _batchService = batchService;
             _batchRepository = batchRepository;
             _context = context;
             _blockchainService = blockchainService;
+            _qrCodeService = qrCodeService;
         }
 
         public async Task<IActionResult> Dashboard()
@@ -147,7 +150,7 @@ namespace DrugTracker.Controllers
             if (string.IsNullOrEmpty(id)) return NotFound();
 
             int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
-            var batch = await _context.DrugBatches.Include(b => b.Drug).FirstOrDefaultAsync(b => b.DrugBatchId == id);
+            var batch = await _batchRepository.GetByBatchIdAsync(id);
 
             if (batch == null || batch.CreatedByOrgId != orgId)
             {
@@ -183,7 +186,7 @@ namespace DrugTracker.Controllers
             int orgId = int.Parse(User.FindFirst("OrgId")?.Value ?? "0");
             int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
             
-            var batch = await _context.DrugBatches.FirstOrDefaultAsync(b => b.DrugBatchId == id);
+            var batch = await _batchRepository.GetByBatchIdAsync(id);
 
             if (batch == null || batch.CreatedByOrgId != orgId)
             {
@@ -289,7 +292,7 @@ namespace DrugTracker.Controllers
                 }
                 
                 // Double check ownership
-                var batch = await _context.DrugBatches.FindAsync(batchId);
+                var batch = await _batchRepository.GetByBatchIdAsync(batchId);
                 if (batch == null || batch.CreatedByOrgId != orgId)
                 {
                      TempData["Error"] = "Batch not found or unauthorized.";
@@ -313,6 +316,26 @@ namespace DrugTracker.Controllers
             }
 
             return RedirectToAction("Dashboard");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadQrCode(string batchId)
+        {
+            var batch = await _batchRepository.GetByBatchIdAsync(batchId);
+            if (batch == null) return NotFound();
+
+            // Content: JSON with plain ID and some metadata
+            var qrData = new
+            {
+                Id = batchId,
+                Timestamp = DateTime.Now,
+                CreatedBy = batch.CreatedByOrg?.OrgName
+            };
+
+            string json = System.Text.Json.JsonSerializer.Serialize(qrData);
+            var imageBytes = _qrCodeService.GenerateQrCode(json);
+
+            return File(imageBytes, "image/png", $"QRCode_{batchId}.png");
         }
     }
 }

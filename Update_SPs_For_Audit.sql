@@ -123,6 +123,7 @@ CREATE OR ALTER PROCEDURE [HealthCare].[sp_AddOrUpdateInventory]
     @PharmacyOrgId INT,
     @AvailableQty INT,
     @ReceivedQty INT,
+    @IsManualUpdate BIT = 0, -- Distinguish Manual Actions from System Actions (Sales/Receiving)
 
     -- Audit Params
     @UserId INT,
@@ -146,6 +147,21 @@ BEGIN
         SET
             AvailableQty = @AvailableQty,
             ReceivedQty = @ReceivedQty,
+
+            -- Tampering Check
+            IsTampered = CASE 
+                            -- 1. If Received Quantity is changed MANUALLY
+                            WHEN @ReceivedQty <> ReceivedQty AND @IsManualUpdate = 1 THEN 1
+
+                            -- 2. If Available Quantity is changed MANUALLY
+                            WHEN @AvailableQty <> AvailableQty AND @IsManualUpdate = 1 THEN 1
+                            
+                            -- 3. Persist existing Tampered status
+                            WHEN IsTampered = 1 THEN 1
+
+                            ELSE 0
+                         END,
+
             LastUpdated = SYSDATETIME()
         WHERE DrugBatchId = @DrugBatchId
           AND PharmacyOrgId = @PharmacyOrgId;
@@ -158,6 +174,7 @@ BEGIN
             PharmacyOrgId,
             AvailableQty,
             ReceivedQty,
+            IsTampered,
             LastUpdated
         )
         VALUES
@@ -166,6 +183,7 @@ BEGIN
             @PharmacyOrgId,
             @AvailableQty,
             @ReceivedQty,
+            0, -- IsTampered (New Record)
             SYSDATETIME()
         );
     END
